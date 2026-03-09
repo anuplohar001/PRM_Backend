@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Users {
+  id          Int     @id @default(autoincrement())
+  name        String
+  email       String  @unique
+  description String?
+  password    String
+  role        String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById Int?
+  updatedById Int?
+
+  createdBy Users? @relation("UserCreatedBy", fields: [createdById], references: [id])
+  updatedBy Users? @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+
+  createdUsers Users[] @relation("UserCreatedBy")
+  updatedUsers Users[] @relation("UserUpdatedBy")
+
+  projectMemberships      ProjectMembers[] //belong to many projects
+  organizationMemberships OrganizationMembers[] //belong to many organizations
+
+  createdOrganizations Organizations[] @relation("UserCreatedBy") //create many organizations
+  updatedOrganizations Organizations[] @relation("UserUpdatedBy") //update many organizations
+
+  createdProjects Projects[] @relation("UserCreatedBy") //create many organizations
+  updatedProjects Projects[] @relation("UserUpdatedBy") //update many organizations
+}
+
+model Organizations {
+  id          Int                   @id @default(autoincrement())
+  name        String
+  description String?
+  members     OrganizationMembers[]
+  projects    Projects[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  createdById Int?
+  updatedById Int?
+
+  createdBy Users? @relation("UserCreatedBy", fields: [createdById], references: [id])
+  updatedBy Users? @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+
+  @@map("organizations")
+}
+
+model OrganizationMembers {
+  id             Int      @id @default(autoincrement())
+  organizationId Int
+  userId         Int
+  role           String
+  joinedAt       DateTime @default(now())
+
+  organization Organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         Users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@map("organization_members")
+}
+
+model Projects {
+  id             Int       @id @default(autoincrement())
+  organizationId Int
+  name           String
+  description    String?
+  status         String
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdById    Int?
+  updatedById    Int?
+
+  createdBy Users? @relation("UserCreatedBy", fields: [createdById], references: [id])
+  updatedBy Users? @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+
+  organization Organizations    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      ProjectMembers[]
+
+  @@map("projects")
+}
+
+model ProjectMembers {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  userId    Int
+  role      String
+  joinedAt  DateTime @default(now())
+
+  project Projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
