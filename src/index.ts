@@ -5,6 +5,7 @@ import { corsOptions } from './config/cors'
 import userRoutes from './routes/users.routes'
 import organizationRoutes from './routes/organization.routes'
 import projectRoutes from './routes/project.routes'
+import getRecordsRoutes from './routes/getRecords.routes' 
 
 
 const serverPort = process.env.SERVER_PORT
@@ -17,6 +18,7 @@ app.use(cors())
 app.use('/api/users', userRoutes)
 app.use("/api/organizations", organizationRoutes)
 app.use("/api/projects", projectRoutes)
+app.use("/api", getRecordsRoutes)
 
 
 

@@ -13,6 +13,22 @@ datasource db {
   provider = "postgresql"
 }
 
+
+
+enum ProjectRoles {
+  PROJECT_ADMIN
+  PROJECT_MEMBER
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
 model Users {
   id          Int     @id @default(autoincrement())
   name        String
@@ -39,8 +55,8 @@ model Users {
   createdOrganizations Organizations[] @relation("UserCreatedBy") //create many organizations
   updatedOrganizations Organizations[] @relation("UserUpdatedBy") //update many organizations
 
-  createdProjects Projects[] @relation("UserCreatedBy") //create many organizations
-  updatedProjects Projects[] @relation("UserUpdatedBy") //update many organizations
+  createdProjects Projects[] @relation("UserCreatedBy") //create many projects
+  updatedProjects Projects[] @relation("UserUpdatedBy") //update many projects
 }
 
 model Organizations {
@@ -80,7 +96,7 @@ model Projects {
   organizationId Int
   name           String
   description    String?
-  status         String
+  status         ProjectStatus @default(PLANNING)
   startDate      DateTime?
   endDate        DateTime?
   createdAt      DateTime  @default(now())
@@ -94,6 +110,8 @@ model Projects {
   organization Organizations    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   members      ProjectMembers[]
 
+  workflow WorkFlow?
+
   @@map("projects")
 }
 
@@ -101,7 +119,7 @@ model ProjectMembers {
   id        Int      @id @default(autoincrement())
   projectId Int
   userId    Int
-  role      String
+  role      ProjectRoles @default(PROJECT_MEMBER)
   joinedAt  DateTime @default(now())
 
   project Projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -109,4 +127,16 @@ model ProjectMembers {
 
   @@unique([projectId, userId])
   @@map("project_members")
+}
+
+model WorkFlow {
+  id          Int      @id @default(autoincrement())
+  projectId   Int      @unique
+  name        String
+  description String
+  createdAt   DateTime @default(now())
+
+  project Projects @relation(fields: [projectId], references: [id])
+
+  @@unique([name])
 }

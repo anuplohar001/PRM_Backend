@@ -1,7 +1,6 @@
 import { Response } from "express"
 import { prisma } from '../utils/prisma'
 import { AuthRequest } from "../middlewares/auth.middleware"
-import { Role } from "../constants/RoleHierarchy"
 
 
 
@@ -21,7 +20,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
                     name,
                     organizationId,
                     description,
-                    status:"N/A",
+                    status: "PLANNING",
                     createdById: userId,
                     updatedById: userId
                 }
@@ -31,7 +30,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
                 data: {
                     projectId: org.id,
                     userId,
-                    role: "PROJECT_OWNER"
+                    role: "PROJECT_MEMBER"
                 }
             })
 
@@ -72,7 +71,7 @@ export const addProjectMember = async (req: AuthRequest, res: Response) => {
             data: {
                 projectId,
                 userId: memberId,
-                role: "PROJECT_MEMBER"
+                role: 'PROJECT_MEMBER'
             }
         })
 

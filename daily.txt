@@ -1,0 +1,45 @@
+// git checkout main
+// git pull origin main
+
+// git checkout - b feature / new- feature
+// git add.
+// git commit - m "add task APIs"
+// git push origin feature / tasks
+
+4️⃣ Create Pull Request
+
+Go to GitHub
+
+Create PR:
+
+feature/tasks → main
+
+After review → Merge PR
+
+5️⃣ Repeat For Every Feature
+
+Example future branches:
+
+feature/tasks
+feature/comments
+feature/file-upload
+feature/notifications
+feature/activity-log
+6️⃣ Typical Workflow From Now
+main (stable code)
+
+      ↑ PR merge
+
+feature/tasks
+feature/comments
+feature/rbac
+feature/invitations
+7️⃣ Important Habit
+
+Before creating a new feature branch:
+
+git checkout main
+git pull origin main
+git checkout -b feature/new-feature
+
+This ensures your branch starts from latest code.
