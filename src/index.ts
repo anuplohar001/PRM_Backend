@@ -6,6 +6,7 @@ import userRoutes from './routes/users.routes'
 import organizationRoutes from './routes/organization.routes'
 import projectRoutes from './routes/project.routes'
 import getRecordsRoutes from './routes/getRecords.routes' 
+import { requestLogger } from './middlewares/logger.middleware'
 
 
 const serverPort = process.env.SERVER_PORT
@@ -14,11 +15,11 @@ app.use(express.json())
 app.use(cors())
 
 
-
+app.use(requestLogger)
 app.use('/api/users', userRoutes)
 app.use("/api/organizations", organizationRoutes)
 app.use("/api/projects", projectRoutes)
-app.use("/api", getRecordsRoutes)
+app.use("/api", getRecordsRoutes) 
 
 
 

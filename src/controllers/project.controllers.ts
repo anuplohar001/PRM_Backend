@@ -15,28 +15,28 @@ export const createProject = async (req: AuthRequest, res: Response) => {
         }
         const project = await prisma.$transaction(async (tx) => {
 
-            const org = await tx.projects.create({
+            const proj = await tx.projects.create({
                 data: {
                     name,
-                    organizationId,
+                    organizationId: parseInt(organizationId),
                     description,
                     status: "PLANNING",
                     createdById: userId,
                     updatedById: userId
                 }
             })
-
+            console.log(proj)
             await tx.projectMembers.create({
                 data: {
-                    projectId: org.id,
+                    projectId: proj.id,
                     userId,
                     role: "PROJECT_MEMBER"
                 }
             })
 
-            return org
+            // return proj
         })
-
+        console.log(project)
         res.status(201).json({
             message: "Project created successfully",
             project
