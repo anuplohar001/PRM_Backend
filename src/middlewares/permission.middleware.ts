@@ -14,7 +14,7 @@ export const requireOrgRole = (requiredRole: Role) => {
 
         const userId = req.user?.userId
         const { organizationId } = req.body
-
+        // console.log('role ', userId, organizationId)
         if (!userId) {
             return res.status(401).json({ message: "Unauthorized" })
         }
@@ -27,6 +27,7 @@ export const requireOrgRole = (requiredRole: Role) => {
                 }
             }
         })
+        console.log(membership)
 
         if (!membership) {
             return res.status(403).json({ message: "User not part of organization" })
@@ -45,10 +46,10 @@ export const requireOrgRole = (requiredRole: Role) => {
 
 export const requireProjRole = (requiredRole: Role) => {
     return async (req: AuthRequest, res: Response, next: NextFunction) => {
-
+        // console.log("mm ", req.body)
         const userId = req.user?.userId
-        const { projectId } = req.body
-
+        const body = req.body
+        const projectId = body?.projectId
         if (!userId) {
             return res.status(401).json({ message: "Unauthorized" })
         }
@@ -72,7 +73,7 @@ export const requireProjRole = (requiredRole: Role) => {
         if (currentRoleLevel < requiredRoleLevel) {
             return res.status(403).json({ message: "Forbidden" })
         }
-
+        console.log("mm ", req.body)
         next()
     }
 }

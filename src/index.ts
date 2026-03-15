@@ -7,6 +7,7 @@ import organizationRoutes from './routes/organization.routes'
 import projectRoutes from './routes/project.routes'
 import getRecordsRoutes from './routes/getRecords.routes' 
 import { requestLogger } from './middlewares/logger.middleware'
+import { getSystemOverview } from './controllers/getRecords.controller'
 
 
 const serverPort = process.env.SERVER_PORT
@@ -20,8 +21,22 @@ app.use('/api/users', userRoutes)
 app.use("/api/organizations", organizationRoutes)
 app.use("/api/projects", projectRoutes)
 app.use("/api", getRecordsRoutes) 
+app.use("/api/super-admin", getSystemOverview) 
 
 
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: `Route ${req.method} ${req.originalUrl} not found`
+    })
+})
+
+// app.use((err: any, req: any, res: any, next: any) => {
+//     res.status(err.status || 500).json({
+//         success: false,
+//         message: err.message || "Internal server error"
+//     })
+// })
 
 app.get('/', (req:Request, res:Response) => {
     res.send('PRM API is running...')

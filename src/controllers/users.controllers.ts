@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken"
 
 export const createUser = async (req: Request, res: Response) => {
     try {
-        const { email, name, password, confirmPassword, role } = req.body
+        const { email, name, password, confirmPassword } = req.body
       
         if (password !== confirmPassword) {
             return res.status(400).json({
@@ -30,7 +30,7 @@ export const createUser = async (req: Request, res: Response) => {
                 email,
                 name,
                 password: hashedPassword,
-                role
+                role: 'USER'
             }
         })
         console.log(newUser)

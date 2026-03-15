@@ -1,6 +1,7 @@
 import { Response } from "express"
 import { prisma } from '../utils/prisma'
 import { AuthRequest } from "../middlewares/auth.middleware"
+import { Role } from "../constants/RoleHierarchy"
 
 
 
@@ -25,12 +26,11 @@ export const createProject = async (req: AuthRequest, res: Response) => {
                     updatedById: userId
                 }
             })
-            console.log(proj)
             await tx.projectMembers.create({
                 data: {
                     projectId: proj.id,
                     userId,
-                    role: "PROJECT_MEMBER"
+                    role: "PROJECT_ADMIN"
                 }
             })
 
@@ -47,8 +47,97 @@ export const createProject = async (req: AuthRequest, res: Response) => {
     }
 }
 
+export const updateProject = async (req: AuthRequest, res: Response) => {
+    try {
+        // const { projectId } = req.params
+        console.log(req.params)
+        const {id, name, description, organizationId, status } = req.body
+        const userId = req.user?.userId
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorised" })
+        }
+
+
+        const existingProject = await prisma.projects.findUnique({
+            where: { id }
+        })
+
+        if (!existingProject) {
+            return res.status(404).json({ message: "Project not found" })
+        }
+
+        const project = await prisma.projects.update({
+            where: { id },
+            data: {
+                name,
+                description,
+                organizationId: organizationId ? parseInt(organizationId) : undefined,
+                status,
+                updatedById: userId
+            }
+        })
+
+        return res.status(200).json({
+            message: "Project updated successfully",
+            project
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            message: "Internal server error"
+        })
+    }
+}
+
+export const deleteProject = async (req: AuthRequest, res: Response) => {
+    try {
+        const { projectId } = req.params
+        const userId = req.user?.userId
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorised" })
+        }
+
+        const id = 1
+
+        const existingProject = await prisma.projects.findUnique({
+            where: { id }
+        })
+
+        if (!existingProject) {
+            return res.status(404).json({ message: "Project not found" })
+        }
+
+        await prisma.$transaction(async (tx) => {
+
+            await tx.projectMembers.deleteMany({
+                where: { projectId: id }
+            })
+
+            await tx.projects.delete({
+                where: { id }
+            })
+
+        })
+
+        return res.status(200).json({
+            message: "Project deleted successfully"
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            message: "Internal server error"
+        })
+    }
+}
+
+
+
+// Project Members Routes
 export const addProjectMember = async (req: AuthRequest, res: Response) => {
     try {
+        console.log(req.body)
         const { projectId, memberId } = req.body
         const userId = req.user?.userId
 
@@ -85,52 +174,53 @@ export const addProjectMember = async (req: AuthRequest, res: Response) => {
     }
 }
 
-// export const updateOrganizationMemberRole = async (
-//     req: AuthRequest,
-//     res: Response
-// ) => {
-//     try {
-//         const { organizationId, memberId, role } = req.body
-//         const userId = req.user?.userId
 
-//         if (!userId) {
-//             return res.status(401).json({ message: "Unauthorized" })
-//         }
+export const updateProjectMemberRole = async (
+    req: AuthRequest,
+    res: Response
+) => {
+    try {
+        const { projectId, memberId, role } = req.body
+        const userId = req.user?.userId
 
-//         const membership = await prisma.organizationMembers.findUnique({
-//             where: {
-//                 organizationId_userId: {
-//                     organizationId,
-//                     userId: memberId
-//                 }
-//             }
-//         })
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" })
+        }
 
-//         if (!membership) {
-//             return res.status(404).json({
-//                 message: "Organization member not found"
-//             })
-//         }
+        const membership = await prisma.projectMembers.findUnique({
+            where: {
+                projectId_userId: {
+                    projectId,
+                    userId: memberId
+                }
+            }
+        })
 
-//         const updatedMember = await prisma.organizationMembers.update({
-//             where: {
-//                 organizationId_userId: {
-//                     organizationId,
-//                     userId: memberId
-//                 }
-//             },
-//             data: {
-//                 role: role as Role
-//             }
-//         })
+        if (!membership) {
+            return res.status(404).json({
+                message: "Organization member not found"
+            })
+        }
 
-//         res.status(200).json({
-//             message: "Member role updated successfully",
-//             updatedMember
-//         })
-//     } catch (error) {
-//         res.status(500).json({ message: "Internal server error" })
-//     }
-// }
+        const updatedMember = await prisma.projectMembers.update({
+            where: {
+                projectId_userId: {
+                    projectId,
+                    userId: memberId
+                }
+            },
+            data: {
+                role
+            }
+        })
+
+        res.status(200).json({
+            message: "Member role updated successfully",
+            updatedMember
+        })
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" })
+    }
+}
 
 
