@@ -1,0 +1,66 @@
+export const Action = {
+
+    GET_ORGANIZATIONS:'GET_ORGANIZATIONS',
+
+    UPDATE_ORG: "UPDATE_ORG",
+    DELETE_ORG: "DELETE_ORG",
+
+    CREATE_USER: "CREATE_USER",
+    ADD_MEMBER: "ADD_MEMBER",
+    REMOVE_MEMBER: "REMOVE_MEMBER",
+    CHANGE_MEMBER_ROLE:'CHANGE_MEMBER_ROLE',
+    GET_MEMBERS_LIST:"GET_MEMBERS_LIST",
+
+    CREATE_PROJECT: "CREATE_PROJECT",
+    UPDATE_PROJECT: "UPDATE_PROJECT",
+    ADD_PROJECT_MEMBER: "ADD_PROJECT_MEMBER",
+    REMOVE_PROJECT_MEMBER: "REMOVE_PROJECT_MEMBER",
+    DELETE_PROJECT: "DELETE_PROJECT",
+
+    CREATE_TEAM: "CREATE_TEAM",
+    DELETE_TEAM: "DELETE_TEAM",
+
+    ADD_TEAM_MEMBER: "ADD_TEAM_MEMBER",
+    REMOVE_TEAM_MEMBER: "REMOVE_TEAM_MEMBER",
+
+    CREATE_TASK: "CREATE_TASK",
+    ASSIGN_TASK: "ASSIGN_TASK",
+} as const
+
+export type Action = typeof Action[keyof typeof Action]
+
+
+export const permissionMap: Record<string, string[]> = {
+    SUPER_ADMIN_ACTIONS: ["GET_ORGANIZATIONS"],
+    ORG_OWNER_ACTIONS: ["DELETE_ORG", "UPDATE_ORG"],
+    ORG_ADMIN_ACTIONS: [
+        "CREATE_USER",
+        "ADD_MEMBER",
+        "REMOVE_MEMBER",
+        "CHANGE_MEMBER_ROLE",
+        "CREATE_PROJECTS",
+        "GET_MEMBERS_LIST",
+        "DELETE_PROJECT"
+    ],
+    PROJECT_ADMIN_ACTIONS: [
+        "ADD_PROJECT_MEMBER",
+        "REMOVE_PROJECT_MEMBER",
+        "CREATE_TEAMS",
+        "DELETE_TEAMS",
+    ],
+    TEAM_ADMIN_ACTIONS: [
+        "ADD_TEAM_MEMBER",
+        "REMOVE_TEAM_MEMBER",
+        "CREATE_TASK",
+        "ASSIGN_TASK",
+    ],
+    TEAM_MEMBER_ACTIONS: ["CREATE_TASK"],
+};
+
+
+export const Resources = {
+    ORGANIZATION:'ORGANIZATION',
+    PROJECT:'PROJECT',
+    TEAM:'TEAM'
+} as const
+export type Resources = typeof Resources[keyof typeof Resources]

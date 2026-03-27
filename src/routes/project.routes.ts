@@ -1,14 +1,15 @@
 import express from 'express'
 import { authenticateUser } from '../middlewares/auth.middleware'
-import { requireOrgRole, requireProjRole } from '../middlewares/permission.middleware'
-import { addProjectMember, createProject, deleteProject, updateProject, updateProjectMemberRole } from '../controllers/project.controllers'
+import { checkOrgPermissions, checkProjectPermissions, requireProjRole } from '../middlewares/permission.middleware'
+import { addProjectMember, createProject, deleteProject, getAssignedProject, removeProjectMember, updateProject, updateProjectMemberRole } from '../controllers/project.controllers'
+import { Action } from '../constants/Permissions'
 
 const router = express.Router()
 
 router.post(
     "/create",
     authenticateUser,
-    requireOrgRole("ORG_ADMIN"),
+    checkOrgPermissions(Action.CREATE_PROJECT),
     createProject
 )
 
@@ -16,19 +17,25 @@ router.post(
 router.put(
     "/:projectId",
     authenticateUser,
-    requireProjRole("PROJECT_ADMIN"),
+    checkProjectPermissions(Action.UPDATE_PROJECT),
     updateProject
 )
 
 router.delete(
     "/:projectId",
     authenticateUser,
-    requireProjRole("PROJECT_ADMIN"),
+    checkProjectPermissions(Action.DELETE_PROJECT),
     deleteProject
 )
 
 
 //Project Member Routes
+
+router.get(
+    "/get-assigned-projects",
+    authenticateUser,
+    getAssignedProject
+)
 
 router.post(
     "/add-member",
@@ -42,6 +49,13 @@ router.patch(
     authenticateUser,
     requireProjRole("PROJECT_ADMIN"),
     updateProjectMemberRole
+)
+
+router.delete(
+    "/:projectId/:memberId",
+    authenticateUser,
+    requireProjRole("PROJECT_ADMIN"),
+    removeProjectMember
 )
 
 export default router
