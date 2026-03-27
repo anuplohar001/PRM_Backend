@@ -6,40 +6,64 @@
 // git commit - m "add task APIs"
 // git push origin feature / tasks
 
-4️⃣ Create Pull Request
 
-Go to GitHub
 
-Create PR:
+Tabs 
+Workspace 
+Organization 
+Super admin
+Projects 
 
-feature/tasks → main
+Role not in user table because 
+1. Role can be prAdmin and prMember to same person 
 
-After review → Merge PR
+No select org for users other than orgOwner
 
-5️⃣ Repeat For Every Feature
+Org open 
+Orgowner 
+Dashboard total members no, total projects with project list with members(roles)
+Create user in that org,
+role assign to org members admin/member, 
+CRUD organization members 
+CRUD projects, 
+add members in projects 
 
-Example future branches:
+Org admin, multiple admins in 1 org
+CRUD end users, CRUD org members, CRUD projects, CRUD projects members, assign project roles
 
-feature/tasks
-feature/comments
-feature/file-upload
-feature/notifications
-feature/activity-log
-6️⃣ Typical Workflow From Now
-main (stable code)
+Project admin
+CRUD project members, assign tasks
 
-      ↑ PR merge
+Project members 
+CRUD tasks
 
-feature/tasks
-feature/comments
-feature/rbac
-feature/invitations
-7️⃣ Important Habit
+Role
+1. Org admin, prOwner, team lead, 
+2. PrMember, teamMember
 
-Before creating a new feature branch:
+Seng org (ONLY 1) details in login api [memberId, orgId] (OrgMembers and Organization tables)
+Org admin 
+Org pannel - total users, total projects
+Proj pannel - total members with roles, task completed qty, create projects
+Teams pannel - 
+Task pannel - project dropdown
 
-git checkout main
-git pull origin main
-git checkout -b feature/new-feature
+ProjAdmin => can be admin of multiple projects, cannot create projects
+Projects => can add or remove members, can assign tasks
+- if role = admin, then also send members of that project from project Member
+- else only project details with assigned by and assigned date
+- 
 
-This ensures your branch starts from latest code.
+Teams => id, name, description, orgId, ProjAdmin
+TeamMembers => id, teamId, role, memberId
+
+type, id, role
+user 1 = [id:1, type:ORGANIZATION, role:owner], [id:1, type:PROJECT, role:owner], [id:2, type:PROJECT, role:member]
+
+
+
+
+
+
+
+

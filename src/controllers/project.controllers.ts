@@ -132,7 +132,30 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
     }
 }
 
+export const getAssignedProject = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.userId
 
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorised" })
+        }
+        const projects = await prisma.projectMembers.findMany({
+            where: {
+                userId
+            },
+            include: {
+                project: true
+            }
+        })
+        res.status(201).json({            
+            message: "Project fetched successfully",
+            data: projects
+        })
+
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" })
+    }
+}
 
 // Project Members Routes
 export const addProjectMember = async (req: AuthRequest, res: Response) => {
@@ -224,3 +247,53 @@ export const updateProjectMemberRole = async (
 }
 
 
+export const removeProjectMember = async (req: AuthRequest, res: Response) => {
+    try {
+        const { projectId, memberId } = req.params
+        console.log(req.params)
+        if (!projectId || !memberId) {
+            return res.status(400).json({
+                success: false,
+                message: "projectId and userId are required"
+            })
+        }
+
+        const membership = await prisma.projectMembers.findUnique({
+            where: {
+                projectId_userId: {
+                    projectId: Number(projectId),
+                    userId: Number(memberId)
+                }
+            }
+        })
+
+        if (!membership) {
+            return res.status(404).json({
+                success: false,
+                message: "Member not found in project"
+            })
+        }
+
+        await prisma.projectMembers.delete({
+            where: {
+                projectId_userId: {
+                    projectId: Number(projectId),
+                    userId: Number(memberId)
+                }
+            }
+        })
+
+        return res.status(200).json({
+            success: true,
+            message: "Project member removed successfully"
+        })
+
+    } catch (error) {
+        console.error(error)
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        })
+    }
+}

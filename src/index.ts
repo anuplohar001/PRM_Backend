@@ -16,7 +16,7 @@ app.use(express.json())
 app.use(cors())
 
 
-app.use(requestLogger)
+// app.use(requestLogger)
 app.use('/api/users', userRoutes)
 app.use("/api/organizations", organizationRoutes)
 app.use("/api/projects", projectRoutes)
@@ -31,12 +31,12 @@ app.use((req, res) => {
     })
 })
 
-// app.use((err: any, req: any, res: any, next: any) => {
-//     res.status(err.status || 500).json({
-//         success: false,
-//         message: err.message || "Internal server error"
-//     })
-// })
+app.use((err: any, req: any, res: any, next: any) => {
+    res.status(err.status || 500).json({
+        success: false,
+        message: err.message || "Internal server error"
+    })
+})
 
 app.get('/', (req:Request, res:Response) => {
     res.send('PRM API is running...')
