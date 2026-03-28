@@ -79,7 +79,11 @@ export const loginUser = async (req: Request, res: Response) => {
 
         const organization = await prisma.organizationMembers.findMany({
             where: { userId: Number(user.id) },
-            include: { organization: true }
+            include: { organization: {
+                include: {
+                    createdBy: true
+                }
+            } }
         })
 
         const token = jwt.sign(
