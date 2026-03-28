@@ -4,6 +4,7 @@ import { AuthRequest } from "../middlewares/auth.middleware"
 import { Role } from "../constants/RoleHierarchy"
 import asyncHandler from "../utils/async-handler"
 import bcrypt from 'bcrypt'
+import { Action } from "../generated/prisma/enums"
 
 
 export const createOrganization = async (req: AuthRequest, res: Response) => {
@@ -103,8 +104,10 @@ export const getOrganizationMembers = async (req: AuthRequest, res: Response) =>
 
         res.status(201).json({
             access: true,
-            message: "Organizations fetched successfully",
-            data: members
+            message: "Organizations members fetched successfully",
+            data: {
+                members
+            }
         })
 
     } catch (error) {
@@ -116,12 +119,11 @@ export const getOrganizationMembers = async (req: AuthRequest, res: Response) =>
 export const createUserFromOrg = asyncHandler(
     async (req: AuthRequest, res: Response) => {
         const userId = req.user?.userId
-        console.log(req.method)
         if (!userId) {
             return res.status(401).json({ message: "Unauthorised" })
         }
         const { email, name, description, password, confirmPassword, organizationId } = req.body
-        console.log(req.body)
+
         if (password !== confirmPassword) {
             return res.status(400).json({
                 message: "Passwords do not match"
@@ -217,18 +219,18 @@ export const addOrganizationMember = async (req: AuthRequest, res: Response) => 
     }
 }
 
-export const updateOrganizationMemberRole = async (
-    req: AuthRequest,
-    res: Response
-) => {
-    try {
+
+export const updateOrganizationMemberRole = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
         const { organizationId, memberId, role } = req.body
         const userId = req.user?.userId
 
         if (!userId) {
             return res.status(401).json({ message: "Unauthorized" })
         }
-
+        if (role === "ORG_OWNER") {
+            return res.status(401).json({ message: "You cannot change role of owner of organization" })
+        }
         const membership = await prisma.organizationMembers.findUnique({
             where: {
                 organizationId_userId: {
@@ -255,14 +257,32 @@ export const updateOrganizationMemberRole = async (
                 role: role as Role
             }
         })
+        let newPermissions: Action[] = [];
+        if (role === "ORG_ADMIN") {
+            newPermissions = [Action.ORG_ADMIN_ACTIONS]
+        } else {
+            newPermissions = [Action.TEAM_MEMBER_ACTIONS]
+        }
+        const updatePolicy = await prisma.policy.update({
+            where: {
+                resourceId_targetId_resource: {
+                    targetId: memberId,
+                    resource: "ORGANIZATION",
+                    resourceId: organizationId
+                }
+            },
+            data: {
+                permissions: newPermissions
+            }
+        })
 
         res.status(200).json({
             message: "Member role updated successfully",
             updatedMember
         })
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error" })
     }
-}
+)
+
+
 
 

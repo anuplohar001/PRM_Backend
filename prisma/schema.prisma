@@ -57,6 +57,7 @@ model Policy {
 
   user Users @relation("ResourcePolicies", fields: [targetId], references: [id])
 
+  @@unique([resourceId, targetId, resource])
   @@map("policies")
 }
 

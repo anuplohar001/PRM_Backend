@@ -1,10 +1,28 @@
 import express from 'express'
 import { authenticateUser } from '../middlewares/auth.middleware'
 import { checkOrgPermissions, checkProjectPermissions, requireProjRole } from '../middlewares/permission.middleware'
-import { addProjectMember, createProject, deleteProject, getAssignedProject, removeProjectMember, updateProject, updateProjectMemberRole } from '../controllers/project.controllers'
+import { 
+    addProjectMember, 
+    createProject, 
+    deleteProject, 
+    getAssignedProject, 
+    getMembers, 
+    getProjects, 
+    removeProjectMember, 
+    updateProject, 
+    updateProjectMemberRole 
+} from '../controllers/project.controllers'
+
 import { Action } from '../constants/Permissions'
 
 const router = express.Router()
+
+router.get(
+    "/:organizationId",
+    authenticateUser,
+    checkOrgPermissions(Action.GET_PROJECTS),
+    getProjects
+)
 
 router.post(
     "/create",
@@ -31,6 +49,12 @@ router.delete(
 
 //Project Member Routes
 
+router.get(
+    "/get-members/:projectId",
+    authenticateUser,
+    checkProjectPermissions(Action.PROJECT_MEMBERS_LIST),
+    getMembers
+)
 router.get(
     "/get-assigned-projects",
     authenticateUser,

@@ -2,8 +2,31 @@ import { Response } from "express"
 import { prisma } from '../utils/prisma'
 import { AuthRequest } from "../middlewares/auth.middleware"
 import { Role } from "../constants/RoleHierarchy"
+import asyncHandler from "../utils/async-handler"
 
-
+export const getProjects = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+        const userId = req.user?.userId
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorised" })
+        }
+        const { organizationId } = req.params
+        const projects = await prisma.projects.findMany({
+            where: {
+                organizationId: Number(organizationId)
+            },
+            include: {
+                createdBy: true
+            }
+        })
+        return res.status(201).json({
+            message: "Project fetched successfully",
+            data: {
+                projects
+            }
+        })
+    }
+)
 
 export const createProject = async (req: AuthRequest, res: Response) => {
     try {
@@ -34,12 +57,24 @@ export const createProject = async (req: AuthRequest, res: Response) => {
                 }
             })
 
-            // return proj
+            await tx.policy.create({
+                data: {
+                    resourceId: proj.id,
+                    resource: "PROJECT",
+                    targetId: userId,
+                    target: "USER",
+                    effect: "ALLOW",
+                    permissions: ["PROJECT_ADMIN_ACTIONS"]
+                }
+            })
+
+            return proj
         })
-        console.log(project)
         res.status(201).json({
             message: "Project created successfully",
-            project
+            data: {
+                project
+            }
         })
 
     } catch (error) {
@@ -51,7 +86,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     try {
         // const { projectId } = req.params
         console.log(req.params)
-        const {id, name, description, organizationId, status } = req.body
+        const { id, name, description, organizationId, status } = req.body
         const userId = req.user?.userId
 
         if (!userId) {
@@ -147,7 +182,7 @@ export const getAssignedProject = async (req: AuthRequest, res: Response) => {
                 project: true
             }
         })
-        res.status(201).json({            
+        res.status(201).json({
             message: "Project fetched successfully",
             data: projects
         })
@@ -158,6 +193,32 @@ export const getAssignedProject = async (req: AuthRequest, res: Response) => {
 }
 
 // Project Members Routes
+
+export const getMembers = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+        const userId = req.user?.userId
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorised" })
+        }
+        const { projectId } = req.params
+        const members = await prisma.projectMembers.findMany({
+            where: {
+                projectId: Number(projectId)
+            },
+            include:{
+                user: true
+            }
+        })
+        return res.status(201).json({
+            message: "Project members fetched successfully",
+            data:{
+                members
+            }
+        })
+    }
+)
+
+
 export const addProjectMember = async (req: AuthRequest, res: Response) => {
     try {
         console.log(req.body)
