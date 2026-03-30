@@ -7,7 +7,8 @@ import {
     deleteProject, 
     getAssignedProject, 
     getMembers, 
-    getProjects, 
+    getOrganizationProjects, 
+    getProject,
     removeProjectMember, 
     updateProject, 
     updateProjectMemberRole 
@@ -16,12 +17,19 @@ import {
 import { Action } from '../constants/Permissions'
 
 const router = express.Router()
-
+  
 router.get(
     "/:organizationId",
     authenticateUser,
     checkOrgPermissions(Action.GET_PROJECTS),
-    getProjects
+    getOrganizationProjects
+)
+
+router.get(
+    "/get-project/:projectId",
+    authenticateUser,
+    checkProjectPermissions(Action.GET_PROJECT),
+    getProject
 )
 
 router.post(

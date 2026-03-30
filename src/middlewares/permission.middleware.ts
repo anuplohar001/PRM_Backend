@@ -53,12 +53,15 @@ export const checkProjectPermissions = (requiredAction: string) => {
     return async (req: AuthRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user?.userId;
-            const { projectId } = req.body || req.params;
-
+            const { projectId } = req.params || req.body;
+            console.log(req.params)
             if (!userId) {
                 return res.status(401).json({ message: "Unauthorized" });
             }
-
+            if (!projectId) {
+                return res.status(401).json({ message: "Project Id not defined" });
+            }
+  
             const policy = await prisma.policy.findFirst({
                 where: {
                     targetId: userId,

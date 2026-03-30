@@ -4,7 +4,7 @@ import { AuthRequest } from "../middlewares/auth.middleware"
 import { Role } from "../constants/RoleHierarchy"
 import asyncHandler from "../utils/async-handler"
 
-export const getProjects = asyncHandler(
+export const getOrganizationProjects = asyncHandler(
     async (req: AuthRequest, res: Response) => {
         const userId = req.user?.userId
         if (!userId) {
@@ -28,9 +28,32 @@ export const getProjects = asyncHandler(
     }
 )
 
-export const createProject = async (req: AuthRequest, res: Response) => {
-    try {
+export const getProject = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+        const userId = req.user?.userId
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorised" })
+        }
+        const { projectId } = req.params
+        const project = await prisma.projects.findFirst({
+            where: {
+                id: Number(projectId)
+            },
+            include: {
+                createdBy: true
+            }
+        })
+        return res.status(201).json({
+            message: "Project fetched successfully",
+            data: {
+                project
+            }
+        })
+    }
+)
 
+export const createProject = asyncHandler(
+    async (req:AuthRequest, res:Response) => {
         const { name, description, organizationId } = req.body
         const userId = req.user?.userId
 
@@ -76,16 +99,11 @@ export const createProject = async (req: AuthRequest, res: Response) => {
                 project
             }
         })
-
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error" })
     }
-}
+)
 
-export const updateProject = async (req: AuthRequest, res: Response) => {
-    try {
-        // const { projectId } = req.params
-        console.log(req.params)
+export const updateProject = asyncHandler(
+    async (req:AuthRequest, res:Response) => {
         const { id, name, description, organizationId, status } = req.body
         const userId = req.user?.userId
 
@@ -115,18 +133,15 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
 
         return res.status(200).json({
             message: "Project updated successfully",
-            project
-        })
-
-    } catch (error) {
-        return res.status(500).json({
-            message: "Internal server error"
+            data:{
+                project
+            }
         })
     }
-}
+)
 
-export const deleteProject = async (req: AuthRequest, res: Response) => {
-    try {
+export const deleteProject = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
         const { projectId } = req.params
         const userId = req.user?.userId
 
@@ -134,10 +149,9 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: "Unauthorised" })
         }
 
-        const id = 1
 
         const existingProject = await prisma.projects.findUnique({
-            where: { id }
+            where: { id: Number(projectId) }
         })
 
         if (!existingProject) {
@@ -147,11 +161,11 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
         await prisma.$transaction(async (tx) => {
 
             await tx.projectMembers.deleteMany({
-                where: { projectId: id }
+                where: { projectId: Number(projectId) }
             })
 
             await tx.projects.delete({
-                where: { id }
+                where: { id: Number(projectId) }
             })
 
         })
@@ -159,16 +173,12 @@ export const deleteProject = async (req: AuthRequest, res: Response) => {
         return res.status(200).json({
             message: "Project deleted successfully"
         })
-
-    } catch (error) {
-        return res.status(500).json({
-            message: "Internal server error"
-        })
     }
-}
+)
 
-export const getAssignedProject = async (req: AuthRequest, res: Response) => {
-    try {
+export const getAssignedProject = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+
         const userId = req.user?.userId
 
         if (!userId) {
@@ -184,13 +194,14 @@ export const getAssignedProject = async (req: AuthRequest, res: Response) => {
         })
         res.status(201).json({
             message: "Project fetched successfully",
-            data: projects
+            data: {
+                projects
+            }
         })
 
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error" })
+
     }
-}
+)
 
 // Project Members Routes
 
@@ -219,8 +230,9 @@ export const getMembers = asyncHandler(
 )
 
 
-export const addProjectMember = async (req: AuthRequest, res: Response) => {
-    try {
+export const addProjectMember = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+
         console.log(req.body)
         const { projectId, memberId } = req.body
         const userId = req.user?.userId
@@ -250,20 +262,22 @@ export const addProjectMember = async (req: AuthRequest, res: Response) => {
 
         res.status(201).json({
             message: "Project member added successfully",
-            project
+            data:{
+                projectMember: project
+            }
         })
 
-    } catch (error) {
-        res.status(500).json({ message: "Internal server erroreeee" })
+
     }
-}
+)
 
 
-export const updateProjectMemberRole = async (
-    req: AuthRequest,
-    res: Response
-) => {
-    try {
+export const updateProjectMemberRole = asyncHandler(
+    async (
+        req: AuthRequest,
+        res: Response
+    ) => {
+
         const { projectId, memberId, role } = req.body
         const userId = req.user?.userId
 
@@ -300,18 +314,19 @@ export const updateProjectMemberRole = async (
 
         res.status(200).json({
             message: "Member role updated successfully",
-            updatedMember
+            data:{
+                updatedMember
+            }
         })
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error" })
+
     }
-}
+)
 
 
-export const removeProjectMember = async (req: AuthRequest, res: Response) => {
-    try {
+export const removeProjectMember = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+
         const { projectId, memberId } = req.params
-        console.log(req.params)
         if (!projectId || !memberId) {
             return res.status(400).json({
                 success: false,
@@ -349,12 +364,6 @@ export const removeProjectMember = async (req: AuthRequest, res: Response) => {
             message: "Project member removed successfully"
         })
 
-    } catch (error) {
-        console.error(error)
 
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        })
     }
-}
+)
