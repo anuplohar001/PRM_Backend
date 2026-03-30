@@ -13,6 +13,7 @@ export const Action = {
 
     GET_PROJECTS: "GET_PROJECTS",
     CREATE_PROJECT: "CREATE_PROJECT",
+    GET_PROJECT:"GET_PROJECT",
     UPDATE_PROJECT: "UPDATE_PROJECT",
     PROJECT_MEMBERS_LIST: "PROJECT_MEMBERS_LIST",
     ADD_PROJECT_MEMBER: "ADD_PROJECT_MEMBER",
@@ -47,6 +48,8 @@ export const permissionMap: Record<string, string[]> = {
     ],
     PROJECT_ADMIN_ACTIONS: [
         "PROJECT_MEMBERS_LIST",
+        "UPDATE_PROJECT",
+        "GET_PROJECT",
         "ADD_PROJECT_MEMBER",
         "REMOVE_PROJECT_MEMBER",
         "CREATE_TEAMS",
