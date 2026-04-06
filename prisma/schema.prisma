@@ -81,22 +81,24 @@ enum Action {
   ORG_OWNER_ACTIONS
   ORG_ADMIN_ACTIONS
   PROJECT_ADMIN_ACTIONS
+  PROJECT_MEMBER_ACTIONS
   TEAM_ADMIN_ACTIONS
   TEAM_MEMBER_ACTIONS
 }
 
 model Organizations {
-  id          Int                   @id @default(autoincrement())
-  name        String
-  description String?
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
-  createdById Int?
-  updatedById Int?
-  members     OrganizationMembers[]
-  createdBy   Users?                @relation("UserCreatedBy", fields: [createdById], references: [id])
-  updatedBy   Users?                @relation("UserUpdatedBy", fields: [updatedById], references: [id])
-  projects    Projects[]
+  id             Int                   @id @default(autoincrement())
+  name           String
+  description    String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  createdById    Int?
+  updatedById    Int?
+  members        OrganizationMembers[]
+  createdBy      Users?                @relation("UserCreatedBy", fields: [createdById], references: [id])
+  updatedBy      Users?                @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+  projects       Projects[]
+  projectMembers ProjectMembers[]
 
   @@map("organizations")
 }
@@ -139,16 +141,18 @@ model Projects {
 }
 
 model ProjectMembers {
-  id        Int      @id @default(autoincrement())
-  projectId Int
-  userId    Int
-  joinedAt  DateTime @default(now())
-  addedById Int?
+  id             Int      @id @default(autoincrement())
+  projectId      Int
+  organizationId Int?
+  userId         Int
+  joinedAt       DateTime @default(now())
+  addedById      Int?
 
-  addedBy Users?       @relation("ProjectMemberAddedBy", fields: [addedById], references: [id])
-  role    ProjectRoles @default(PROJECT_MEMBER)
-  project Projects     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    Users        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addedBy      Users?        @relation("ProjectMemberAddedBy", fields: [addedById], references: [id])
+  role         ProjectRoles  @default(PROJECT_MEMBER)
+  project      Projects      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organizations? @relation(fields: [organizationId], references: [id])
+  user         Users         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
   @@map("project_members")

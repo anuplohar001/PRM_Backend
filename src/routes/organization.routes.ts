@@ -1,9 +1,9 @@
 import express from 'express'
 import { authenticateUser } from '../middlewares/auth.middleware'
-import { addOrganizationMember, createOrganization, createUserFromOrg, getOrganizationMembers, getOrganizationsOfUser, updateOrganizationMemberRole } from '../controllers/organization.controller'
+import { addOrganizationMember, createOrganization, createUserFromOrg, getOrganizationMembers, getOrganizationsOfUser, updateOrganizationMemberRole } from '../controllers/organization.controllers'
 import { checkOrgPermissions } from '../middlewares/permission.middleware'
 import { Action } from '../constants/Permissions'
-import { getPermissions } from '../controllers/permissions.controller'
+import { getOrgPermissions } from '../controllers/permissions.controllers'
 
 const router = express.Router()
 
@@ -21,10 +21,10 @@ router.get(
 )
 
 //Permissions
-router.get( 
+router.get(
     "/permissions/:organizationId",
     authenticateUser,
-    getPermissions("ORGANIZATION")
+    getOrgPermissions("ORGANIZATION")
 )
 
 router.get(

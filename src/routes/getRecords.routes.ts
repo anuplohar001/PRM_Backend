@@ -1,6 +1,6 @@
 import express from 'express'
 import { authenticateUser } from '../middlewares/auth.middleware'
-import { getRecords, getSystemOverview } from '../controllers/getRecords.controller'
+import { getRecords, getSystemOverview } from '../controllers/getRecords.controllers'
 
 const router = express.Router()
 
@@ -11,8 +11,8 @@ router.post(
 )
 
 router.get(
-    "/system-data", 
-    authenticateUser, 
+    "/system-data",
+    authenticateUser,
     getSystemOverview
 )
 
