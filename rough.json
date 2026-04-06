@@ -1,0 +1,4 @@
+{
+    "success": false,
+    "message": "\nInvalid `prisma.projectMembers.update()` invocation in\nC:\\Users\\anupl\\OneDrive\\Desktop\\PRM Tool\\ProjectManagement\\prm-backend\\src\\controllers\\project.controllers.ts:385:59\n\n  382     })\n  383 }\n  384 \n→ 385 const updatedMember = await prisma.projectMembers.update({\n        where: {\n          projectId_userId: {\n            projectId: 4,\n            userId: 5\n          }\n        },\n        data: {\n          role: \"ORG_ADMIN\"\n                ~~~~~~~~~~~\n        }\n      })\n\nInvalid value for argument `role`. Expected ProjectRoles."
+}

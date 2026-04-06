@@ -3,6 +3,7 @@ import { prisma } from '../utils/prisma'
 import { AuthRequest } from "../middlewares/auth.middleware"
 import { Role } from "../constants/RoleHierarchy"
 import asyncHandler from "../utils/async-handler"
+import { Action } from "../generated/prisma/enums"
 
 export const getOrganizationProjects = asyncHandler(
     async (req: AuthRequest, res: Response) => {
@@ -28,7 +29,44 @@ export const getOrganizationProjects = asyncHandler(
     }
 )
 
-export const getProject = asyncHandler(
+export const getAddProjectMemberList = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorised" });
+        }
+
+        const { organizationId, projectId } = req.params;
+
+        const members = await prisma.organizationMembers.findMany({
+            where: {
+                organizationId: Number(organizationId),
+
+                // ❌ exclude users already in this project
+                user: {
+                    projectMemberships: {
+                        none: {
+                            projectId: Number(projectId),
+                        },
+                    },
+                },
+            },
+            include: {
+                user: true, // ✅ get user details
+            },
+        });
+
+        return res.status(200).json({
+            message: "Available members fetched successfully",
+            data: {
+                members,
+            },
+        });
+    }
+);
+
+export const viewProject = asyncHandler(
     async (req: AuthRequest, res: Response) => {
         const userId = req.user?.userId
         if (!userId) {
@@ -52,8 +90,46 @@ export const getProject = asyncHandler(
     }
 )
 
+export const getUserProjects = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorised" });
+        }
+
+        const { organizationId } = req.params;
+
+        const projectMembers = await prisma.projectMembers.findMany({
+            where: {
+                userId: userId, // ✅ filter logged-in user
+                organizationId: Number(organizationId),
+            },
+            include: {
+                project: {
+                    include: {
+                        createdBy: true,
+                    },
+                },
+            },
+        });
+        // ✅ extract only projects
+        const projects = projectMembers.map((pm) => ({
+            ...pm.project,
+            role: pm.role,
+        }));
+
+        return res.status(200).json({
+            message: "Projects fetched successfully",
+            data: {
+                projects,
+            },
+        });
+    }
+);
+
 export const createProject = asyncHandler(
-    async (req:AuthRequest, res:Response) => {
+    async (req: AuthRequest, res: Response) => {
         const { name, description, organizationId } = req.body
         const userId = req.user?.userId
 
@@ -75,6 +151,7 @@ export const createProject = asyncHandler(
             await tx.projectMembers.create({
                 data: {
                     projectId: proj.id,
+                    organizationId: Number(organizationId),
                     userId,
                     role: "PROJECT_ADMIN"
                 }
@@ -87,7 +164,7 @@ export const createProject = asyncHandler(
                     targetId: userId,
                     target: "USER",
                     effect: "ALLOW",
-                    permissions: ["PROJECT_ADMIN_ACTIONS"]
+                    permissions: ["PROJECT_ADMIN_ACTIONS", "PROJECT_MEMBER_ACTIONS"]
                 }
             })
 
@@ -103,7 +180,7 @@ export const createProject = asyncHandler(
 )
 
 export const updateProject = asyncHandler(
-    async (req:AuthRequest, res:Response) => {
+    async (req: AuthRequest, res: Response) => {
         const { id, name, description, organizationId, status } = req.body
         const userId = req.user?.userId
 
@@ -133,7 +210,7 @@ export const updateProject = asyncHandler(
 
         return res.status(200).json({
             message: "Project updated successfully",
-            data:{
+            data: {
                 project
             }
         })
@@ -176,33 +253,6 @@ export const deleteProject = asyncHandler(
     }
 )
 
-export const getAssignedProject = asyncHandler(
-    async (req: AuthRequest, res: Response) => {
-
-        const userId = req.user?.userId
-
-        if (!userId) {
-            return res.status(401).json({ message: "Unauthorised" })
-        }
-        const projects = await prisma.projectMembers.findMany({
-            where: {
-                userId
-            },
-            include: {
-                project: true
-            }
-        })
-        res.status(201).json({
-            message: "Project fetched successfully",
-            data: {
-                projects
-            }
-        })
-
-
-    }
-)
-
 // Project Members Routes
 
 export const getMembers = asyncHandler(
@@ -216,13 +266,13 @@ export const getMembers = asyncHandler(
             where: {
                 projectId: Number(projectId)
             },
-            include:{
+            include: {
                 user: true
             }
         })
         return res.status(201).json({
             message: "Project members fetched successfully",
-            data:{
+            data: {
                 members
             }
         })
@@ -233,8 +283,7 @@ export const getMembers = asyncHandler(
 export const addProjectMember = asyncHandler(
     async (req: AuthRequest, res: Response) => {
 
-        console.log(req.body)
-        const { projectId, memberId } = req.body
+        const { projectId, memberId, organizationId } = req.body
         const userId = req.user?.userId
 
         if (!userId) {
@@ -249,20 +298,32 @@ export const addProjectMember = asyncHandler(
 
         if (existingMember) {
             return res.status(400).json({
-                message: "User is already a member of this organization"
+                message: "User is already a member of this project"
             })
         }
         const project = await prisma.projectMembers.create({
             data: {
                 projectId,
                 userId: memberId,
+                organizationId,
                 role: 'PROJECT_MEMBER'
+            }
+        })
+
+        await prisma.policy.create({
+            data: {
+                targetId: memberId,
+                target: "USER",
+                resource: "PROJECT",
+                resourceId: projectId,
+                effect: 'ALLOW',
+                permissions: ['TEAM_MEMBER_ACTIONS', 'PROJECT_MEMBER_ACTIONS']
             }
         })
 
         res.status(201).json({
             message: "Project member added successfully",
-            data:{
+            data: {
                 projectMember: project
             }
         })
@@ -278,12 +339,13 @@ export const updateProjectMemberRole = asyncHandler(
         res: Response
     ) => {
 
-        const { projectId, memberId, role } = req.body
         const userId = req.user?.userId
 
         if (!userId) {
             return res.status(401).json({ message: "Unauthorized" })
         }
+
+        const { projectId, memberId, role } = req.body
 
         const membership = await prisma.projectMembers.findUnique({
             where: {
@@ -296,7 +358,7 @@ export const updateProjectMemberRole = asyncHandler(
 
         if (!membership) {
             return res.status(404).json({
-                message: "Organization member not found"
+                message: "Project member not exist"
             })
         }
 
@@ -311,10 +373,27 @@ export const updateProjectMemberRole = asyncHandler(
                 role
             }
         })
-
+        let newPermissions: Action[] = [];
+        if (role === "PROJECT_ADMIN") {
+            newPermissions = [Action.PROJECT_ADMIN_ACTIONS]
+        } else {
+            newPermissions = [Action.TEAM_MEMBER_ACTIONS]
+        }
+        const updatePolicy = await prisma.policy.update({
+            where: {
+                resourceId_targetId_resource: {
+                    targetId: memberId,
+                    resource: "PROJECT",
+                    resourceId: projectId
+                }
+            },
+            data: {
+                permissions: newPermissions
+            }
+        })
         res.status(200).json({
             message: "Member role updated successfully",
-            data:{
+            data: {
                 updatedMember
             }
         })
@@ -355,6 +434,17 @@ export const removeProjectMember = asyncHandler(
                 projectId_userId: {
                     projectId: Number(projectId),
                     userId: Number(memberId)
+                }
+            }
+        })
+
+
+        await prisma.policy.delete({
+            where: {
+                resourceId_targetId_resource: {
+                    targetId: Number(memberId),
+                    resource: "PROJECT",
+                    resourceId: Number(projectId)
                 }
             }
         })

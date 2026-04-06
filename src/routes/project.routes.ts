@@ -1,23 +1,36 @@
 import express from 'express'
 import { authenticateUser } from '../middlewares/auth.middleware'
-import { checkOrgPermissions, checkProjectPermissions, requireProjRole } from '../middlewares/permission.middleware'
-import { 
-    addProjectMember, 
-    createProject, 
-    deleteProject, 
-    getAssignedProject, 
-    getMembers, 
-    getOrganizationProjects, 
-    getProject,
-    removeProjectMember, 
-    updateProject, 
-    updateProjectMemberRole 
+import { getProjectPermissions } from '../controllers/permissions.controllers'
+import {
+    checkOrgPermissions,
+    checkProjectPermissions,
+    requireProjRole
+} from '../middlewares/permission.middleware'
+import {
+    addProjectMember,
+    createProject,
+    deleteProject,
+    getAddProjectMemberList,
+    getMembers,
+    getOrganizationProjects,
+    viewProject,
+    getUserProjects,
+    removeProjectMember,
+    updateProject,
+    updateProjectMemberRole
 } from '../controllers/project.controllers'
 
 import { Action } from '../constants/Permissions'
 
 const router = express.Router()
-  
+
+//Permissions
+router.get(
+    "/permissions/:projectId",
+    authenticateUser,
+    getProjectPermissions("PROJECT")
+)
+
 router.get(
     "/:organizationId",
     authenticateUser,
@@ -26,10 +39,23 @@ router.get(
 )
 
 router.get(
-    "/get-project/:projectId",
+    "/get-my-projects/:organizationId",
     authenticateUser,
-    checkProjectPermissions(Action.GET_PROJECT),
-    getProject
+    getUserProjects
+)
+router.get(
+    "/get-add-project-member-list/:organizationId/:projectId",
+    authenticateUser,
+    checkProjectPermissions(Action.ADD_PROJECT_MEMBER),
+    getAddProjectMemberList
+)
+
+router.get(
+    "/view-project/:projectId",
+    authenticateUser,
+    // checkProjectPermissions(Action.GET_PROJECT),
+    checkProjectPermissions(Action.VIEW_PROJECT),
+    viewProject
 )
 
 router.post(
@@ -63,30 +89,25 @@ router.get(
     checkProjectPermissions(Action.PROJECT_MEMBERS_LIST),
     getMembers
 )
-router.get(
-    "/get-assigned-projects",
-    authenticateUser,
-    getAssignedProject
-)
 
 router.post(
     "/add-member",
     authenticateUser,
-    requireProjRole("PROJECT_ADMIN"),
+    checkProjectPermissions(Action.ADD_PROJECT_MEMBER),
     addProjectMember
 )
 
 router.patch(
     "/update-member-role",
     authenticateUser,
-    requireProjRole("PROJECT_ADMIN"),
+    checkProjectPermissions(Action.UPDATE_PROJECT_MEMBER_ROLE),
     updateProjectMemberRole
 )
 
 router.delete(
-    "/:projectId/:memberId",
+    "/remove-member/:projectId/:memberId",
     authenticateUser,
-    requireProjRole("PROJECT_ADMIN"),
+    checkProjectPermissions(Action.REMOVE_PROJECT_MEMBER),
     removeProjectMember
 )
 

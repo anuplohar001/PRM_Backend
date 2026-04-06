@@ -53,8 +53,7 @@ export const checkProjectPermissions = (requiredAction: string) => {
     return async (req: AuthRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user?.userId;
-            const { projectId } = req.params || req.body;
-            console.log(req.params)
+            const projectId = req.params.projectId ?? req.body.projectId;
             if (!userId) {
                 return res.status(401).json({ message: "Unauthorized" });
             }
