@@ -1,12 +1,14 @@
 import { Request, Response, NextFunction } from "express"
 import jwt from "jsonwebtoken"
-
+import { Role } from "../constants/RoleHierarchy"
+import { Action } from "../generated/prisma/enums"
 export interface AuthRequest extends Request {
     user?: {
         userId: number
         email: string
-        role: string
+        role: Role
     }
+    permissions?: Action[]
 }
 
 export const authenticateUser = (
@@ -26,7 +28,7 @@ export const authenticateUser = (
         const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
             userId: number
             email: string
-            role: string
+            role: Role
         }
 
         req.user = decoded

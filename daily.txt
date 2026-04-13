@@ -1,69 +1,7 @@
-// git checkout main
-// git pull origin main
-
-// git checkout - b feature / new- feature
-// git add.
-// git commit - m "add task APIs"
-// git push origin feature / tasks
-
-
-
-Tabs 
-Workspace 
-Organization 
-Super admin
-Projects 
-
-Role not in user table because 
-1. Role can be prAdmin and prMember to same person 
-
-No select org for users other than orgOwner
-
-Org open 
-Orgowner 
-Dashboard total members no, total projects with project list with members(roles)
-Create user in that org,
-role assign to org members admin/member, 
-CRUD organization members 
-CRUD projects, 
-add members in projects 
-
-Org admin, multiple admins in 1 org
-CRUD end users, CRUD org members, CRUD projects, CRUD projects members, assign project roles
-
-Project admin
-CRUD project members, assign tasks
-
-Project members 
-CRUD tasks
-
-Role
-1. Org admin, prOwner, team lead, 
-2. PrMember, teamMember
-
-Seng org (ONLY 1) details in login api [memberId, orgId] (OrgMembers and Organization tables)
-Org admin 
-Org pannel - total users, total projects
-Proj pannel - total members with roles, task completed qty, create projects
-Teams pannel - 
-Task pannel - project dropdown
-
-ProjAdmin => can be admin of multiple projects, cannot create projects
-Projects => can add or remove members, can assign tasks
-- if role = admin, then also send members of that project from project Member
-- else only project details with assigned by and assigned date
-- 
-
-Teams => id, name, description, orgId, ProjAdmin
-TeamMembers => id, teamId, role, memberId
-
-type, id, role
-user 1 = [id:1, type:ORGANIZATION, role:owner], [id:1, type:PROJECT, role:owner], [id:2, type:PROJECT, role:member]
-
-
-
-
-
-
-
-
+git pull orign develop
+git checkout -b branchName
+git pull origin develop
+git status
+git add .
+git commit -m "message"
+git push origin branchName

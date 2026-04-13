@@ -7,6 +7,62 @@ datasource db {
   provider = "postgresql"
 }
 
+
+
+
+enum ResourceType {
+  ORGANIZATION
+  PROJECT
+  TEAM
+}
+
+enum TargetType {
+  USER
+}
+
+enum EffectType {
+  ALLOW
+  DECLINE
+}
+
+enum Action {
+  // Define your actions here, for example:
+  ORG_OWNER_ACTIONS
+  ORG_ADMIN_ACTIONS
+  PROJECT_ADMIN_ACTIONS
+  PROJECT_MEMBER_ACTIONS
+  TEAM_ADMIN_ACTIONS
+  TEAM_MEMBER_ACTIONS
+}
+
+
+
+enum ProjectRoles {
+  PROJECT_ADMIN
+  PROJECT_MEMBER
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum TeamRoles {
+  TEAM_ADMIN
+  TEAM_MEMBER
+}
+
+
+
+
+
+
+
+
 model Log {
   endpoint  String?
   method    String?
@@ -41,7 +97,13 @@ model Users {
   orgMemberAddedBy  OrganizationMembers[] @relation("OrgMemberAddedBy")
   projMemberAddedBy ProjectMembers[]      @relation("ProjectMemberAddedBy")
 
-  policies Policy[] @relation("ResourcePolicies")
+  policies    Policy[]     @relation("ResourcePolicies")
+
+  createdTeams Team[] @relation("TeamCreatedBy")
+  updatedTeams Team[] @relation("TeamUpdatedBy")
+
+  addedTeamMembers TeamMember[] @relation("TeamMemberAddedBy") //users added by TEAM_ADMIN
+  teamMemberships  TeamMember[] //all teams where this user is member of that teams
 }
 
 model Policy {
@@ -61,30 +123,7 @@ model Policy {
   @@map("policies")
 }
 
-enum ResourceType {
-  ORGANIZATION
-  PROJECT
-  TEAM
-}
 
-enum TargetType {
-  USER
-}
-
-enum EffectType {
-  ALLOW
-  DECLINE
-}
-
-enum Action {
-  // Define your actions here, for example:
-  ORG_OWNER_ACTIONS
-  ORG_ADMIN_ACTIONS
-  PROJECT_ADMIN_ACTIONS
-  PROJECT_MEMBER_ACTIONS
-  TEAM_ADMIN_ACTIONS
-  TEAM_MEMBER_ACTIONS
-}
 
 model Organizations {
   id             Int                   @id @default(autoincrement())
@@ -99,6 +138,7 @@ model Organizations {
   updatedBy      Users?                @relation("UserUpdatedBy", fields: [updatedById], references: [id])
   projects       Projects[]
   projectMembers ProjectMembers[]
+  teams          Team[]
 
   @@map("organizations")
 }
@@ -136,6 +176,7 @@ model Projects {
   createdBy      Users?           @relation("UserCreatedBy", fields: [createdById], references: [id])
   organization   Organizations    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   updatedBy      Users?           @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+  teams          Team[]
 
   @@map("projects")
 }
@@ -148,14 +189,58 @@ model ProjectMembers {
   joinedAt       DateTime @default(now())
   addedById      Int?
 
-  addedBy      Users?        @relation("ProjectMemberAddedBy", fields: [addedById], references: [id])
-  role         ProjectRoles  @default(PROJECT_MEMBER)
-  project      Projects      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  addedBy      Users?         @relation("ProjectMemberAddedBy", fields: [addedById], references: [id])
+  role         ProjectRoles   @default(PROJECT_MEMBER)
+  project      Projects       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   organization Organizations? @relation(fields: [organizationId], references: [id])
-  user         Users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         Users          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
   @@map("project_members")
+}
+
+
+model Team {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  // Foreign Keys
+  organizationId Int
+  projectId      Int?
+
+  // Relations
+  organization Organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Projects?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  // Optional: team members
+  members TeamMember[]
+
+  createdById Int
+  updatedById Int
+
+  createdBy Users @relation("TeamCreatedBy", fields: [createdById], references: [id])
+  updatedBy Users @relation("TeamUpdatedBy", fields: [updatedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([projectId])
+}
+
+model TeamMember {
+  id Int @id @default(autoincrement())
+
+  teamId    Int
+  userId    Int
+  role      TeamRoles @default(TEAM_MEMBER)
+  addedById Int?
+
+  addedBy Users?  @relation("TeamMemberAddedBy", fields: [addedById], references: [id])
+  member  Users   @relation(fields: [userId], references: [id])
+  team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
 }
 
 model WorkFlow {
@@ -165,18 +250,4 @@ model WorkFlow {
   description String
   createdAt   DateTime @default(now())
   project     Projects @relation(fields: [projectId], references: [id])
-}
-
-enum ProjectRoles {
-  PROJECT_ADMIN
-  PROJECT_MEMBER
-}
-
-enum ProjectStatus {
-  PLANNING
-  ACTIVE
-  ON_HOLD
-  COMPLETED
-  CANCELLED
-  ARCHIVED
 }

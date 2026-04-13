@@ -22,6 +22,9 @@ export const Action = {
     REMOVE_PROJECT_MEMBER: "REMOVE_PROJECT_MEMBER",
     DELETE_PROJECT: "DELETE_PROJECT",
 
+    GET_TEAMS: "GET_TEAMS",
+    GET_TEAM_MEMBERS: "GET_TEAM_MEMBERS",
+    VIEW_TEAM: "VIEW_TEAM",
     CREATE_TEAM: "CREATE_TEAM",
     DELETE_TEAM: "DELETE_TEAM",
 
@@ -46,7 +49,8 @@ export const permissionMap: Record<string, string[]> = {
         "CREATE_PROJECT",
         "GET_MEMBERS_LIST",
         "DELETE_PROJECT",
-        "GET_PROJECTS"
+        "GET_PROJECTS",
+        "GET_TEAMS",
     ],
     PROJECT_ADMIN_ACTIONS: [
         "PROJECT_MEMBERS_LIST",
@@ -55,7 +59,7 @@ export const permissionMap: Record<string, string[]> = {
         "ADD_PROJECT_MEMBER",
         "REMOVE_PROJECT_MEMBER",
         "UPDATE_PROJECT_MEMBER_ROLE",
-        "CREATE_TEAMS",
+        "CREATE_TEAM",
         "DELETE_TEAMS",
     ],
     PROJECT_MEMBER_ACTIONS: [
@@ -63,11 +67,12 @@ export const permissionMap: Record<string, string[]> = {
     ],
     TEAM_ADMIN_ACTIONS: [
         "ADD_TEAM_MEMBER",
+        "GET_TEAM_MEMBERS",
         "REMOVE_TEAM_MEMBER",
         "CREATE_TASK",
         "ASSIGN_TASK",
     ],
-    TEAM_MEMBER_ACTIONS: ["CREATE_TASK"],
+    TEAM_MEMBER_ACTIONS: ["CREATE_TASK", "VIEW_TEAM"],
 };
 
 
@@ -77,3 +82,6 @@ export const Resources = {
     TEAM:'TEAM'
 } as const
 export type Resources = typeof Resources[keyof typeof Resources]
+
+
+

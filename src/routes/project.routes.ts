@@ -4,7 +4,6 @@ import { getProjectPermissions } from '../controllers/permissions.controllers'
 import {
     checkOrgPermissions,
     checkProjectPermissions,
-    requireProjRole
 } from '../middlewares/permission.middleware'
 import {
     addProjectMember,
@@ -17,7 +16,8 @@ import {
     getUserProjects,
     removeProjectMember,
     updateProject,
-    updateProjectMemberRole
+    updateProjectMemberRole,
+    getAdminProjects
 } from '../controllers/project.controllers'
 
 import { Action } from '../constants/Permissions'
@@ -36,6 +36,12 @@ router.get(
     authenticateUser,
     checkOrgPermissions(Action.GET_PROJECTS),
     getOrganizationProjects
+)
+
+router.get(
+    "/admin/projects",
+    authenticateUser,
+    getAdminProjects
 )
 
 router.get(

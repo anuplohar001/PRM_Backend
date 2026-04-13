@@ -29,6 +29,41 @@ export const getOrganizationProjects = asyncHandler(
     }
 )
 
+
+export const getAdminProjects = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        const projects = await prisma.projects.findMany({
+            where: {
+                members: {
+                    some: {
+                        userId: userId,
+                        role: "PROJECT_ADMIN",
+                    },
+                },
+            },
+            include: {
+                createdBy: true
+            },
+        });
+
+        res.status(200).json({
+            message: "Admin projects fetched successfully",
+            data: {
+                projects,
+            },
+        });
+    }
+);
+
+
+
+
 export const getAddProjectMemberList = asyncHandler(
     async (req: AuthRequest, res: Response) => {
         const userId = req.user?.userId;
@@ -304,6 +339,7 @@ export const addProjectMember = asyncHandler(
         const project = await prisma.projectMembers.create({
             data: {
                 projectId,
+                addedById: userId,
                 userId: memberId,
                 organizationId,
                 role: 'PROJECT_MEMBER'
