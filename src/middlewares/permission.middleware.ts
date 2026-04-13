@@ -1,22 +1,16 @@
 import { Request, Response, NextFunction } from "express"
-import { GlobalRoleHierarchy, Role } from "../constants/RoleHierarchy"
 import { prisma } from "../utils/prisma"
 import { permissionMap } from "../constants/Permissions"
-
-interface AuthRequest extends Request {
-    user?: {
-        userId: number
-        role: Role
-    }
-}
+import asyncHandler from "../utils/async-handler"
+import { AuthRequest } from "./auth.middleware"
 
 export const checkOrgPermissions = (requiredAction: string) => {
     return async (req: AuthRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user?.userId;
-            const { organizationId } = req.body || req.params;
+            const organizationId = req.params.organizationId ?? req.body.organizationId;
             if (!userId) {
-                return res.status(401).json({ message: "Unauthorized" });
+                return res.status(401).json({ message: "Unauthorized", hasAccess: false });
             }
 
             const policy = await prisma.policy.findFirst({
@@ -39,8 +33,9 @@ export const checkOrgPermissions = (requiredAction: string) => {
             const hasAccess = allowedActions.includes(requiredAction);
 
             if (!hasAccess) {
-                return res.status(403).json({ message: "Forbidden" });
+                return res.status(403).json({ message: "Forbidden", hasAccess: false });
             }  
+            req.permissions = policy.permissions
             next();
         } catch (error) {
             console.error(error);
@@ -55,7 +50,7 @@ export const checkProjectPermissions = (requiredAction: string) => {
             const userId = req.user?.userId;
             const projectId = req.params.projectId ?? req.body.projectId;
             if (!userId) {
-                return res.status(401).json({ message: "Unauthorized" });
+                return res.status(401).json({ message: "Unauthorized", hasAccess: false });
             }
             if (!projectId) {
                 return res.status(401).json({ message: "Project Id not defined" });
@@ -82,9 +77,9 @@ export const checkProjectPermissions = (requiredAction: string) => {
             const hasAccess = allowedActions.includes(requiredAction);
 
             if (!hasAccess) {
-                return res.status(403).json({ message: "Forbidden" });
+                return res.status(403).json({ message: "Forbidden", hasAccess: false });
             }
-
+            req.permissions = policy.permissions
             next();
         } catch (error) {
             console.error(error);
@@ -93,41 +88,46 @@ export const checkProjectPermissions = (requiredAction: string) => {
     };
 };
 
-export const requireProjRole = (requiredRole: Role) => {
-    return async (req: AuthRequest, res: Response, next: NextFunction) => {
-        // console.log("mm ", req.params)
 
-        const userId = req.user?.userId
-        let body
-        if (req.method === 'DELETE') {
-            body = req.params
-        } else {
-            body = req.body
-        }
-        const projectId = parseInt(body?.projectId)
-        if (!userId) {
-            return res.status(401).json({ message: "Unauthorized" })
-        }
+export const checkTeamPermissions = (requiredAction: string) => {
+    return asyncHandler(
+        async (req: AuthRequest, res: Response, next: NextFunction) => {
+            const userId = req.user?.userId;
+            const teamId = req.params.teamId ?? req.body?.teamId;
 
-        const membership = await prisma.projectMembers.findUnique({
-            where: {
-                projectId_userId: {
-                    projectId,
-                    userId
-                }
+            if (!userId) {
+                return res.status(401).json({ message: "Unauthorized", hasAccess: false });
             }
-        })
 
-        if (!membership) {
-            return res.status(403).json({ message: "User not part of project" })
+            if (!teamId) {
+                return res.status(400).json({ message: "Team Id not defined" });
+            }
+
+            const policy = await prisma.policy.findFirst({
+                where: {
+                    targetId: userId,
+                    resourceId: Number(teamId),
+                    resource: "TEAM",
+                },
+            });
+
+            if (!policy || !policy.permissions) {
+                return res.status(403).json({ message: "No permissions found" });
+            }
+
+            const userRoles: string[] = policy.permissions;
+
+            const allowedActions = userRoles.flatMap(
+                (role) => permissionMap[role] || []
+            );
+
+            const hasAccess = allowedActions.includes(requiredAction);
+
+            if (!hasAccess) {
+                return res.status(403).json({ message: "Forbidden", hasAccess:false });
+            }
+            req.permissions = policy.permissions
+            next();
         }
-
-        const currentRoleLevel = GlobalRoleHierarchy[membership.role as Role]
-        const requiredRoleLevel = GlobalRoleHierarchy[requiredRole]
-
-        if (currentRoleLevel < requiredRoleLevel) {
-            return res.status(403).json({ message: "Forbidden", access: false })
-        }
-        next()
-    }
-}
+    );
+};
