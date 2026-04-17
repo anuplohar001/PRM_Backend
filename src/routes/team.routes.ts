@@ -16,7 +16,7 @@ router.get(
 router.get(
     "/:organizationId",
     authenticateUser,
-    checkOrgPermissions(Action.GET_TEAMS),
+    // checkOrgPermissions(Action.GET_TEAMS),
     getOrganizationTeams
 )
 

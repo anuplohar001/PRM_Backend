@@ -13,7 +13,7 @@ export const createWorkflow = async (req: AuthRequest, res: Response) => {
         if (!userId) {
             return res.status(401).json({ message: "Unauthorised" })
         }
-        const workflow = await prisma.workflow.create({
+        const workflow = await prisma.workFlow.create({
             data: {
                 name,
                 description,

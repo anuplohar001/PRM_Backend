@@ -1,4 +1,148 @@
 {
-    "success": false,
-    "message": "\nInvalid `prisma.projectMembers.update()` invocation in\nC:\\Users\\anupl\\OneDrive\\Desktop\\PRM Tool\\ProjectManagement\\prm-backend\\src\\controllers\\project.controllers.ts:385:59\n\n  382     })\n  383 }\n  384 \n→ 385 const updatedMember = await prisma.projectMembers.update({\n        where: {\n          projectId_userId: {\n            projectId: 4,\n            userId: 5\n          }\n        },\n        data: {\n          role: \"ORG_ADMIN\"\n                ~~~~~~~~~~~\n        }\n      })\n\nInvalid value for argument `role`. Expected ProjectRoles."
+    "result": [
+        {
+            "id": 2,
+            "name": "John Project",
+            "teams": [
+                {
+                    "id": 6,
+                    "name": "Sales Team",
+                    "projectId": 2,
+                    "members": [
+                        {
+                            "id": 6,
+                            "teamId": 6,
+                            "userId": 2,
+                            "role": "TEAM_ADMIN",
+                            "addedById": 2
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Swiggy",
+            "teams": [
+                {
+                    "id": 3,
+                    "name": "swiggy riders",
+                    "projectId": 3,
+                    "members": [
+                        {
+                            "id": 3,
+                            "teamId": 3,
+                            "userId": 2,
+                            "role": "TEAM_ADMIN",
+                            "addedById": 2
+                        }
+                    ]
+                },
+                {
+                    "id": 4,
+                    "name": "Instamart",
+                    "projectId": 3,
+                    "members": [
+                        {
+                            "id": 4,
+                            "teamId": 4,
+                            "userId": 2,
+                            "role": "TEAM_ADMIN",
+                            "addedById": 2
+                        }
+                    ]
+                },
+                {
+                    "id": 7,
+                    "name": "Testing",
+                    "projectId": 3,
+                    "members": [
+                        {
+                            "id": 7,
+                            "teamId": 7,
+                            "userId": 2,
+                            "role": "TEAM_ADMIN",
+                            "addedById": 2
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Zomato",
+            "teams": [
+                {
+                    "id": 1,
+                    "name": "Delivery boy",
+                    "projectId": 4,
+                    "members": [
+                        {
+                            "id": 1,
+                            "teamId": 1,
+                            "userId": 2,
+                            "role": "TEAM_ADMIN",
+                            "addedById": 2
+                        },
+                        {
+                            "id": 8,
+                            "teamId": 1,
+                            "userId": 4,
+                            "role": "TEAM_MEMBER",
+                            "addedById": 2
+                        }
+                    ]
+                },
+                {
+                    "id": 2,
+                    "name": "Riders",
+                    "projectId": 4,
+                    "members": [
+                        {
+                            "id": 2,
+                            "teamId": 2,
+                            "userId": 2,
+                            "role": "TEAM_ADMIN",
+                            "addedById": 2
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Happinetz",
+            "teams": [
+                {
+                    "id": 5,
+                    "name": "Frontend",
+                    "projectId": 5,
+                    "members": [
+                        {
+                            "id": 5,
+                            "teamId": 5,
+                            "userId": 2,
+                            "role": "TEAM_ADMIN",
+                            "addedById": 2
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": 6,
+            "name": "Toolivo",
+            "teams": []
+        },
+        {
+            "id": 7,
+            "name": "Repair Management System",
+            "teams": []
+        },
+        {
+            "id": 8,
+            "name": "Drug Recommendation System",
+            "teams": []
+        }
+    ]
 }

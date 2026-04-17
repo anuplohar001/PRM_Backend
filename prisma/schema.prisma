@@ -171,7 +171,7 @@ model Projects {
   createdById    Int?
   updatedById    Int?
   status         ProjectStatus    @default(PLANNING)
-  workflow       WorkFlow?
+  workflow       WorkFlow[]
   members        ProjectMembers[]
   createdBy      Users?           @relation("UserCreatedBy", fields: [createdById], references: [id])
   organization   Organizations    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -245,9 +245,11 @@ model TeamMember {
 
 model WorkFlow {
   id          Int      @id @default(autoincrement())
-  projectId   Int      @unique
-  name        String   @unique
+  projectId   Int      
+  name        String   
   description String
   createdAt   DateTime @default(now())
   project     Projects @relation(fields: [projectId], references: [id])
+
+  @@unique([ projectId, name])
 }
