@@ -25,7 +25,7 @@ export const checkOrgPermissions = (requiredAction: string) => {
                 return res.status(403).json({ message: "No permissions found" });
             }
 
-            const userRoles: string[] = policy.permissions; 
+            const userRoles: string[] = policy.permissions;
 
             const allowedActions = userRoles.flatMap(
                 (role) => permissionMap[role] || []
@@ -33,8 +33,8 @@ export const checkOrgPermissions = (requiredAction: string) => {
             const hasAccess = allowedActions.includes(requiredAction);
 
             if (!hasAccess) {
-                return res.status(403).json({ message: "Forbidden", hasAccess: false });
-            }  
+                return res.status(403).json({ message: "You have no access to view this page !", hasAccess: false });
+            }
             req.permissions = policy.permissions
             next();
         } catch (error) {
@@ -55,7 +55,7 @@ export const checkProjectPermissions = (requiredAction: string) => {
             if (!projectId) {
                 return res.status(401).json({ message: "Project Id not defined" });
             }
-  
+
             const policy = await prisma.policy.findFirst({
                 where: {
                     targetId: userId,
@@ -68,7 +68,7 @@ export const checkProjectPermissions = (requiredAction: string) => {
                 return res.status(403).json({ message: "No permissions found" });
             }
 
-            const userRoles: string[] = policy.permissions; 
+            const userRoles: string[] = policy.permissions;
 
             const allowedActions = userRoles.flatMap(
                 (role) => permissionMap[role] || []
@@ -77,7 +77,7 @@ export const checkProjectPermissions = (requiredAction: string) => {
             const hasAccess = allowedActions.includes(requiredAction);
 
             if (!hasAccess) {
-                return res.status(403).json({ message: "Forbidden", hasAccess: false });
+                return res.status(403).json({ message: "You have no access to view this page !", hasAccess: false });
             }
             req.permissions = policy.permissions
             next();
@@ -112,22 +112,44 @@ export const checkTeamPermissions = (requiredAction: string) => {
             });
 
             if (!policy || !policy.permissions) {
-                return res.status(403).json({ message: "No permissions found" });
+                const teamDetails = await prisma.team.findUnique({
+                    where: {
+                        id: Number(teamId)
+                    }
+                })
+                if (teamDetails) {
+                    const projectPolicy = await prisma.policy.findFirst({
+                        where: {
+                            targetId: userId,
+                            resourceId: Number(teamDetails.projectId),
+                            resource: "PROJECT"
+                        }
+                    })
+                    const hasFullTeamAccess = projectPolicy?.permissions.includes("PROJECT_ADMIN_ACTIONS")
+
+                    if (!hasFullTeamAccess) {
+                        return res.status(403).json({ message: "You have no access to view this page !", hasAccess: false });
+                    }
+
+                    req.permissions = projectPolicy?.permissions
+                    next()
+                } else
+                    return res.status(403).json({ message: "No permissions found", hasAccess: false });
+            } else {
+                const userRoles: string[] = policy.permissions;
+
+                const allowedActions = userRoles.flatMap(
+                    (role) => permissionMap[role] || []
+                );
+
+                const hasAccess = allowedActions.includes(requiredAction);
+
+                if (!hasAccess) {
+                    return res.status(403).json({ message: "You have no access to view this page !", hasAccess: false });
+                }
+                req.permissions = policy.permissions
+                next();
             }
-
-            const userRoles: string[] = policy.permissions;
-
-            const allowedActions = userRoles.flatMap(
-                (role) => permissionMap[role] || []
-            );
-
-            const hasAccess = allowedActions.includes(requiredAction);
-
-            if (!hasAccess) {
-                return res.status(403).json({ message: "Forbidden", hasAccess:false });
-            }
-            req.permissions = policy.permissions
-            next();
         }
     );
 };

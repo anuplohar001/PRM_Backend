@@ -6,6 +6,7 @@ import userRoutes from './routes/users.routes'
 import organizationRoutes from './routes/organization.routes'
 import projectRoutes from './routes/project.routes'
 import teamRoutes from './routes/team.routes'
+import workFlowRoutes from './routes/workflow.routes'
 import getRecordsRoutes from './routes/getRecords.routes'
 import { requestLogger } from './middlewares/logger.middleware'
 import { getSystemOverview } from './controllers/getRecords.controllers'
@@ -22,6 +23,9 @@ app.use('/api/users', userRoutes)
 app.use("/api/organizations", organizationRoutes)
 app.use("/api/projects", projectRoutes)
 app.use("/api/teams", teamRoutes)
+app.use("/api/workflow", workFlowRoutes)
+
+
 app.use("/api", getRecordsRoutes)
 app.use("/api/super-admin", getSystemOverview)
 

@@ -3,6 +3,7 @@ import { Response } from "express"
 import { prisma } from '../utils/prisma'
 import { AuthRequest } from "../middlewares/auth.middleware"
 import { Action } from "../generated/prisma/enums"
+import { getActionsPerPolicy } from "../constants/Permissions"
 
 
 
@@ -13,20 +14,134 @@ export const getOrganizationTeams = asyncHandler(
         if (!userId) {
             return res.status(401).json({ message: "Unauthorised" })
         }
-        const { organizationId } = req.params
-        const teams = await prisma.team.findMany({
+        const policies = await prisma.policy.findMany({
             where: {
-                organizationId: Number(organizationId)
-            },
-            include: {
-                createdBy: true,
-                project:true
+                targetId: userId
             }
         })
-        return res.status(201).json({
-            message: "Organization Teams fetched successfully",
+        const policiesWithActions = getActionsPerPolicy(policies || [])
+
+
+        const projectPolicies = policiesWithActions.filter(p => p.resource === "PROJECT")
+        const teamPolicies = policiesWithActions.filter(p => p.resource === "TEAM")
+        const orgPolicies = policiesWithActions.filter(p => p.resource === "ORGANIZATION")
+
+
+        const projectMap = new Map()
+        projectPolicies.forEach(p => {
+            projectMap.set(p.resourceId, p)  //  [projectId, {project policies}]
+        })
+
+        const teamMap = new Map()
+        teamPolicies.forEach(p => {
+            teamMap.set(p.resourceId, p)   //  [teamId, {team policies}]
+        })
+
+
+        const projectIds = [...projectMap.keys()]
+
+        const projects = await prisma.projects.findMany({
+            where: {
+                id: { in: projectIds }
+            },
+            select: {
+                id: true,
+                name: true
+            }
+        })
+
+
+
+        const teams = await prisma.team.findMany({
+            where: {
+                projectId: { in: projectIds }
+            },
+            select: {
+                id: true,
+                name: true,
+                projectId: true
+            }
+        })
+
+
+
+        const teamIdsWithFullAccess = teams
+            .filter(team => {
+                const policy = projectMap.get(team.projectId)
+                const teamPolicy = teamMap.get(team.id)
+                return policy?.permissions.includes("PROJECT_ADMIN_ACTIONS")
+                    || teamPolicy?.permissions.includes("TEAM_ADMIN_ACTIONS")
+            })
+            .map(t => t.id)
+
+        const teamMembers = await prisma.teamMember.findMany({
+            where: {
+                teamId: { in: teamIdsWithFullAccess }
+            }
+        })
+
+
+
+        const teamMembersMap = new Map()
+
+        teamMembers.forEach(member => {
+            if (!teamMembersMap.has(member.teamId)) {
+                teamMembersMap.set(member.teamId, [])
+            }
+            teamMembersMap.get(member.teamId).push(member)
+        })
+
+
+        const result = projects.map(project => {
+            const projectPolicy = projectMap.get(project.id)
+
+            const isProjectAdmin =
+                projectPolicy?.permissions.includes("PROJECT_ADMIN_ACTIONS")
+            let projectTeams
+
+            if (isProjectAdmin) {
+                // full access → all teams + members (if team admin)
+                projectTeams = teams
+                    .filter(t => t.projectId === project.id)
+                    .map(team => {
+                        return {
+                            ...team,
+                            fullTeamAccess: true,
+                            members: teamMembersMap.get(team.id) || []
+                        }
+                    })
+            } else {
+                // only teams where user has membership
+                projectTeams = teams
+                    .filter(t => teamMap.has(t.id))
+                    .filter(t => t.projectId === project.id)
+                    .map(team => {
+                        const teamPolicy = teamMap.get(team.id)
+
+                        const isTeamAdmin =
+                            teamPolicy?.permissions.includes("TEAM_ADMIN_ACTIONS")
+
+                        return {
+                            ...team,
+                            fullTeamAccess: isTeamAdmin,
+                            members: isTeamAdmin
+                                ? teamMembersMap.get(team.id) || []
+                                : undefined
+                        }
+                    })
+            }
+
+            return {
+                ...project,
+                fullProjectAccess: isProjectAdmin,
+                teams: projectTeams
+            }
+        })
+
+        res.status(201).json({
+            message: "Teams data fetched successfully",
             data: {
-                teams
+                result
             }
         })
     }
@@ -49,7 +164,7 @@ export const createTeam = asyncHandler(
                     organizationId: Number(organizationId),
                     projectId: projectId ? Number(projectId) : null,
                     createdById: creator,
-                    updatedById:creator
+                    updatedById: creator
                 }
             })
 
@@ -97,28 +212,29 @@ export const viewTeamDetails = asyncHandler(
         }
 
         const team = await prisma.team.findUnique({
-            where:{
+            where: {
                 id: Number(teamId)
             },
-            include:{
+            include: {
                 createdBy: true,
                 updatedBy: true,
                 project: true
             }
         })
-        if (req.permissions?.includes(Action.TEAM_MEMBER_ACTIONS)) {
+        if (req.permissions?.includes(Action.TEAM_MEMBER_ACTIONS) || req.permissions?.includes(Action.PROJECT_ADMIN_ACTIONS)) {
             const teamMembers = await prisma.teamMember.findMany({
-                where:{
+                where: {
                     teamId: team?.id
                 },
-                include:{
-                    member:true
+                include: {
+                    member: true
                 }
             })
             res.status(201).json({
                 message: "Team and members fetched successfully",
                 data: {
                     team,
+                    fullTeamAccess: true,
                     teamMembers
                 }
             })
@@ -134,7 +250,7 @@ export const viewTeamDetails = asyncHandler(
 
     }
 )
-  
+
 
 export const getAddTeamMemberList = asyncHandler(
     async (req: AuthRequest, res: Response) => {
@@ -149,7 +265,7 @@ export const getAddTeamMemberList = asyncHandler(
         const members = await prisma.projectMembers.findMany({
             where: {
                 projectId: Number(projectId),
-                organizationId : Number(organizationId),
+                organizationId: Number(organizationId),
 
                 // ❌ exclude users already in this team
                 user: {

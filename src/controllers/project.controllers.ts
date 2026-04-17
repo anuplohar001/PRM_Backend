@@ -113,13 +113,18 @@ export const viewProject = asyncHandler(
                 id: Number(projectId)
             },
             include: {
-                createdBy: true
+                createdBy: true,
+                // members: {
+                //     include: {
+                //         user: true,
+                //     },
+                // },
             }
         })
         return res.status(201).json({
             message: "Project fetched successfully",
             data: {
-                project
+                project                
             }
         })
     }
@@ -137,22 +142,36 @@ export const getUserProjects = asyncHandler(
 
         const projectMembers = await prisma.projectMembers.findMany({
             where: {
-                userId: userId, // ✅ filter logged-in user
+                userId: userId,
                 organizationId: Number(organizationId),
             },
             include: {
                 project: {
                     include: {
                         createdBy: true,
+ 
+                        // ✅ include all members of project
+                        // members: {
+                        //     include: {
+                        //         user: true,
+                        //     },
+                        // },
                     },
                 },
             },
         });
-        // ✅ extract only projects
-        const projects = projectMembers.map((pm) => ({
-            ...pm.project,
-            role: pm.role,
-        }));
+
+        const projects = projectMembers.map((pm) => {
+            const isAdmin = pm.role === "PROJECT_ADMIN";
+
+            return {
+                ...pm.project,
+                role: pm.role,
+
+                // ✅ only send members if admin
+                // members: isAdmin ? pm.project.members : undefined,
+            };
+        });
 
         return res.status(200).json({
             message: "Projects fetched successfully",
@@ -353,7 +372,7 @@ export const addProjectMember = asyncHandler(
                 resource: "PROJECT",
                 resourceId: projectId,
                 effect: 'ALLOW',
-                permissions: ['TEAM_MEMBER_ACTIONS', 'PROJECT_MEMBER_ACTIONS']
+                permissions: ['PROJECT_MEMBER_ACTIONS']
             }
         })
 
