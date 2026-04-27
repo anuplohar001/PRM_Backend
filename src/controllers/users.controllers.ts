@@ -96,7 +96,8 @@ export const loginUser = async (req: Request, res: Response) => {
             message: "Login successful",
             token,
             user,
-            organization
+            organization,
+            projectId: 3
         })
        
     } catch (error) {

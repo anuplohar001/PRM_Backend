@@ -10,6 +10,7 @@ import workFlowRoutes from './routes/workflow.routes'
 import getRecordsRoutes from './routes/getRecords.routes'
 import { requestLogger } from './middlewares/logger.middleware'
 import { getSystemOverview } from './controllers/getRecords.controllers'
+import taskRoutes from './routes/tasks.routes'
 
 
 const serverPort = process.env.SERVER_PORT
@@ -24,6 +25,7 @@ app.use("/api/organizations", organizationRoutes)
 app.use("/api/projects", projectRoutes)
 app.use("/api/teams", teamRoutes)
 app.use("/api/workflow", workFlowRoutes)
+app.use("/api/tasks", taskRoutes)
 
 
 app.use("/api", getRecordsRoutes)
