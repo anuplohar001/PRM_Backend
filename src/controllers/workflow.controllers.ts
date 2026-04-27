@@ -1,13 +1,14 @@
 import { Response } from "express"
 import { prisma } from '../utils/prisma'
 import { AuthRequest } from "../middlewares/auth.middleware"
+import asyncHandler from "../utils/async-handler"
 
 
 
-export const createWorkflow = async (req: AuthRequest, res: Response) => {
-    try {
+export const createWorkflow = asyncHandler(
+    async (req:AuthRequest, res: Response) => {
 
-        const { name, description, projectId } = req.body
+        const { name, description, projectId, position } = req.body
         const userId = req.user?.userId
 
         if (!userId) {
@@ -17,105 +18,186 @@ export const createWorkflow = async (req: AuthRequest, res: Response) => {
             data: {
                 name,
                 description,
-                projectId
+                position: Number(position),
+                projectId: Number(projectId)
             }
         })
-        
 
         res.status(201).json({
             message: "Workflow created successfully",
             workflow
         })
 
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error" })
     }
-}
+)
 
-// export const addProjectMember = async (req: AuthRequest, res: Response) => {
-//     try {
-//         const { projectId, memberId } = req.body
-//         const userId = req.user?.userId
 
-//         if (!userId) {
-//             return res.status(401).json({ message: "Unauthorised" })
-//         }
-//         const existingMember = await prisma.projectMembers.findFirst({
-//             where: {
-//                 projectId,
-//                 userId: memberId
-//             }
-//         })
+export const getProjectWorkflow = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
 
-//         if (existingMember) {
-//             return res.status(400).json({
-//                 message: "User is already a member of this organization"
-//             })
-//         }
-//         const project = await prisma.projectMembers.create({
-//             data: {
-//                 projectId,
-//                 userId: memberId,
-//                 role: "PROJECT_MEMBER"
-//             }
-//         })
+        const { projectId } = req.params
+        const userId = req.user?.userId
 
-//         res.status(201).json({
-//             message: "Project member added successfully",
-//             project
-//         })
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorised" })
+        }
+        const workflow = await prisma.workFlow.findMany({
+            where: {
+                projectId: Number(projectId)
+            },
+            orderBy: {
+                position: 'asc' 
+            }
+        })
 
-//     } catch (error) {
-//         res.status(500).json({ message: "Internal server erroreeee" })
-//     }
-// }
+        res.status(201).json({
+            message: "Project workflow fetched successfully",
+            data:{
+                workflows: workflow
+            }
+        })
 
-// export const updateOrganizationMemberRole = async (
-//     req: AuthRequest,
-//     res: Response
-// ) => {
-//     try {
-//         const { organizationId, memberId, role } = req.body
-//         const userId = req.user?.userId
 
-//         if (!userId) {
-//             return res.status(401).json({ message: "Unauthorized" })
-//         }
+    }
+)
 
-//         const membership = await prisma.organizationMembers.findUnique({
-//             where: {
-//                 organizationId_userId: {
-//                     organizationId,
-//                     userId: memberId
-//                 }
-//             }
-//         })
 
-//         if (!membership) {
-//             return res.status(404).json({
-//                 message: "Organization member not found"
-//             })
-//         }
+export const getWorkflow = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
 
-//         const updatedMember = await prisma.organizationMembers.update({
-//             where: {
-//                 organizationId_userId: {
-//                     organizationId,
-//                     userId: memberId
-//                 }
-//             },
-//             data: {
-//                 role: role as Role
-//             }
-//         })
+        const { workflowId } = req.params
+        const userId = req.user?.userId
 
-//         res.status(200).json({
-//             message: "Member role updated successfully",
-//             updatedMember
-//         })
-//     } catch (error) {
-//         res.status(500).json({ message: "Internal server error" })
-//     }
-// }
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorised" })
+        }
+        const workflow = await prisma.workFlow.findUnique({
+            where: {
+                id: Number(workflowId)
+            }
+        })
+
+        res.status(201).json({
+            message: "Workflow fetched successfully",
+            data:{
+                workflow
+            }
+        })
+
+
+    }
+)
+
+
+
+export const deleteWorkflow = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+        const { workflowId, projectId } = req.params;
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorised" });
+        }
+
+        const existingWorkflow = await prisma.workFlow.findUnique({
+            where: {
+                id: Number(workflowId),
+                projectId: Number(projectId)
+            },
+        });
+
+        if (!existingWorkflow) {
+            return res.status(404).json({ message: "Workflow not found" });
+        }
+
+        await prisma.workFlow.delete({
+            where: {
+                id: Number(workflowId),
+                projectId: Number(projectId)
+            },
+        });
+
+        res.status(200).json({
+            message: "Workflow deleted successfully",
+        });
+    }
+);
+
+export const updateWorkflow = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+        const { id, name, description, projectId, position } = req.body;
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorised" });
+        }
+
+        const workflowId = Number(id);
+        const newPosition = Number(position);
+        const projId = Number(projectId);
+
+        const existingWorkflow = await prisma.workFlow.findUnique({
+            where: { id: workflowId }
+        });
+
+        if (!existingWorkflow) {
+            return res.status(404).json({ message: "Workflow not found" });
+        }
+
+        const oldPosition = existingWorkflow.position;
+
+        await prisma.$transaction(async (tx) => {
+
+            // 1. Move current workflow to TEMP position
+            await tx.workFlow.update({
+                where: { id: workflowId },
+                data: { position: -1 } // temporary मुक्त slot
+            });
+
+            // 2. Shift others
+            if (newPosition < oldPosition) {
+                await tx.workFlow.updateMany({
+                    where: {
+                        projectId: projId,
+                        position: {
+                            gte: newPosition,
+                            lt: oldPosition
+                        }
+                    },
+                    data: {
+                        position: { increment: 1 }
+                    }
+                });
+            } else if (newPosition > oldPosition) {
+                await tx.workFlow.updateMany({
+                    where: {
+                        projectId: projId,
+                        position: {
+                            gt: oldPosition,
+                            lte: newPosition
+                        }
+                    },
+                    data: {
+                        position: { decrement: 1 }
+                    }
+                });
+            }
+
+            // 3. Place workflow at new position
+            await tx.workFlow.update({
+                where: { id: workflowId },
+                data: {
+                    name,
+                    description,
+                    position: newPosition
+                }
+            });
+        });
+
+        return res.status(200).json({
+            message: "Workflow updated with reordering",
+        });
+    }
+);
 
 

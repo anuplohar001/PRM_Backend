@@ -184,14 +184,14 @@ export const getUserProjects = asyncHandler(
 
 export const createProject = asyncHandler(
     async (req: AuthRequest, res: Response) => {
-        const { name, description, organizationId } = req.body
-        const userId = req.user?.userId
+        const { name, description, organizationId } = req.body;
+        const userId = req.user?.userId;
 
         if (!userId) {
-            return res.status(401).json({ message: "Unauthorised" })
+            return res.status(401).json({ message: "Unauthorised" });
         }
-        const project = await prisma.$transaction(async (tx) => {
 
+        const project = await prisma.$transaction(async (tx) => {
             const proj = await tx.projects.create({
                 data: {
                     name,
@@ -199,17 +199,18 @@ export const createProject = asyncHandler(
                     description,
                     status: "PLANNING",
                     createdById: userId,
-                    updatedById: userId
-                }
-            })
+                    updatedById: userId,
+                },
+            });
+
             await tx.projectMembers.create({
                 data: {
                     projectId: proj.id,
                     organizationId: Number(organizationId),
                     userId,
-                    role: "PROJECT_ADMIN"
-                }
-            })
+                    role: "PROJECT_ADMIN",
+                },
+            });
 
             await tx.policy.create({
                 data: {
@@ -218,20 +219,48 @@ export const createProject = asyncHandler(
                     targetId: userId,
                     target: "USER",
                     effect: "ALLOW",
-                    permissions: ["PROJECT_ADMIN_ACTIONS", "PROJECT_MEMBER_ACTIONS"]
-                }
-            })
+                    permissions: [
+                        "PROJECT_ADMIN_ACTIONS",
+                        "PROJECT_MEMBER_ACTIONS",
+                    ],
+                },
+            });
 
-            return proj
-        })
+            // ✅ Create default workflows
+            await tx.workFlow.createMany({
+                data: [
+                    {
+                        name: "To Do",
+                        position: 1,
+                        description: "Tasks yet to be started",
+                        projectId: proj.id,
+                    },
+                    {
+                        name: "In Progress",
+                        position: 2,
+                        description: "Tasks currently in progress",
+                        projectId: proj.id,
+                    },
+                    {
+                        name: "Done",
+                        position: 3,
+                        description: "Completed tasks",
+                        projectId: proj.id,
+                    },
+                ],
+            });
+
+            return proj;
+        });
+
         res.status(201).json({
             message: "Project created successfully",
             data: {
-                project
-            }
-        })
+                project,
+            },
+        });
     }
-)
+);
 
 export const updateProject = asyncHandler(
     async (req: AuthRequest, res: Response) => {
