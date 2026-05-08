@@ -4,11 +4,12 @@ import bcrypt from 'bcrypt'
 import jwt from "jsonwebtoken"
 import { AuthRequest } from '../middlewares/auth.middleware'
 import asyncHandler from '../utils/async-handler'
+import { createActivity } from '../utils/createActivity'
 
-export const createUser = async (req: Request, res: Response) => {
+export const createUser = async (req: AuthRequest, res: Response) => {
     try {
         const { email, name, password, confirmPassword } = req.body
-
+        const userId = req.user?.userId
         if (password !== confirmPassword) {
             return res.status(400).json({
                 message: "Passwords do not match"
@@ -35,6 +36,7 @@ export const createUser = async (req: Request, res: Response) => {
                 role: 'USER'
             }
         })
+
         res.status(201).json(newUser)
 
     } catch (error: any) {
@@ -79,11 +81,13 @@ export const loginUser = async (req: Request, res: Response) => {
 
         const organization = await prisma.organizationMembers.findMany({
             where: { userId: Number(user.id) },
-            include: { organization: {
-                include: {
-                    createdBy: true
+            include: {
+                organization: {
+                    include: {
+                        createdBy: true
+                    }
                 }
-            } }
+            }
         })
 
         const token = jwt.sign(
@@ -99,7 +103,7 @@ export const loginUser = async (req: Request, res: Response) => {
             organization,
             projectId: 3
         })
-       
+
     } catch (error) {
         return res.status(500).json({ message: "Internal server error", error })
     }

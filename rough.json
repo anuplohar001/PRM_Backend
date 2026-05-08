@@ -1,4 +1,4 @@
 {
     "success": false,
-    "message": "\nInvalid `tx.workFlow.updateMany()` invocation in\nC:\\Users\\anupl\\OneDrive\\Desktop\\PRM Tool\\ProjectManagement\\prm-backend\\src\\controllers\\workflow.controllers.ts:159:35\n\n  156 \n  157 // 2. Shift others\n  158 if (newPosition < oldPosition) {\n→ 159     await tx.workFlow.updateMany(\nUnique constraint failed on the fields: (`\"projectId\"`, `\"position\"`)"
+    "message": "type \"public.OrgRoles\" does not exist"
 }

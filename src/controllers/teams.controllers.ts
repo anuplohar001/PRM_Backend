@@ -4,6 +4,8 @@ import { prisma } from '../utils/prisma'
 import { AuthRequest } from "../middlewares/auth.middleware"
 import { Action } from "../generated/prisma/enums"
 import { getActionsPerPolicy } from "../constants/Permissions"
+import { getProjectContext } from "../utils/getProjectContext"
+import { createActivity } from "../utils/createActivity"
 
 
 
@@ -192,6 +194,22 @@ export const createTeam = asyncHandler(
 
             return newTeam
         })
+        const { isAdmin, projectTitle, adminIds } = await getProjectContext(Number(team.projectId), Number(userId));
+
+        await createActivity({
+            actorId: userId,
+            action: "CREATE_TEAM",
+            module: "team",
+            entityId: team.id,
+            entityType: "TEAM",
+            isAdmin,
+            projectId: Number(team?.projectId),
+            projectTitle,
+            visibilityUserIds: adminIds, // 👈 only project admins
+            metadata: {
+                title: team.name
+            }
+        });
 
         res.status(201).json({
             message: "Team created successfully",
@@ -221,7 +239,7 @@ export const viewTeamDetails = asyncHandler(
                 project: true
             }
         })
-        if (req.permissions?.includes(Action.TEAM_MEMBER_ACTIONS) || req.permissions?.includes(Action.PROJECT_ADMIN_ACTIONS)) {
+        if (req.permissions?.includes(Action.TEAM_ADMIN_ACTIONS) || req.permissions?.includes(Action.PROJECT_ADMIN_ACTIONS)) {
             const teamMembers = await prisma.teamMember.findMany({
                 where: {
                     teamId: team?.id

@@ -2,34 +2,9 @@ import { Response } from "express"
 import { prisma } from '../utils/prisma'
 import { AuthRequest } from "../middlewares/auth.middleware"
 import asyncHandler from "../utils/async-handler"
+import { createActivity } from "../utils/createActivity"
+import { getProjectContext } from "../utils/getProjectContext"
 
-
-
-export const createWorkflow = asyncHandler(
-    async (req:AuthRequest, res: Response) => {
-
-        const { name, description, projectId, position } = req.body
-        const userId = req.user?.userId
-
-        if (!userId) {
-            return res.status(401).json({ message: "Unauthorised" })
-        }
-        const workflow = await prisma.workFlow.create({
-            data: {
-                name,
-                description,
-                position: Number(position),
-                projectId: Number(projectId)
-            }
-        })
-
-        res.status(201).json({
-            message: "Workflow created successfully",
-            workflow
-        })
-
-    }
-)
 
 
 export const getProjectWorkflow = asyncHandler(
@@ -46,13 +21,13 @@ export const getProjectWorkflow = asyncHandler(
                 projectId: Number(projectId)
             },
             orderBy: {
-                position: 'asc' 
+                position: 'asc'
             }
         })
 
         res.status(201).json({
             message: "Project workflow fetched successfully",
-            data:{
+            data: {
                 workflows: workflow
             }
         })
@@ -79,7 +54,7 @@ export const getWorkflow = asyncHandler(
 
         res.status(201).json({
             message: "Workflow fetched successfully",
-            data:{
+            data: {
                 workflow
             }
         })
@@ -89,6 +64,55 @@ export const getWorkflow = asyncHandler(
 )
 
 
+
+
+export const createWorkflow = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+
+        const { name, description, projectId, position } = req.body
+        const userId = req.user?.userId
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorised" })
+        }
+        const workflow = await prisma.workFlow.create({
+            data: {
+                name,
+                description,
+                position: Number(position),
+                projectId: Number(projectId)
+            },
+            include: {
+                project: true
+            }
+        })
+        const projectMembers = await prisma.projectMembers.findMany({
+            where:{
+                projectId
+            }
+        })
+        const memberIds = projectMembers.map((p) => p.id)
+        await createActivity({
+            actorId: Number(userId),
+            action: "CREATE_WORKFLOW", 
+            module: "user",
+            entityId: workflow.id,
+            entityType: "WORKFLOW",
+            isAdmin: true,
+            visibilityUserIds: memberIds, // 👈 only project admins
+            metadata: {
+                title: workflow.name,
+                subTitle: workflow.project.name
+            }
+        });
+
+        res.status(201).json({
+            message: "Workflow created successfully",
+            workflow
+        })
+
+    }
+)
 
 export const deleteWorkflow = asyncHandler(
     async (req: AuthRequest, res: Response) => {
