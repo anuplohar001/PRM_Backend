@@ -1,10 +1,10 @@
 import { Response } from "express"
 import { prisma } from '../utils/prisma'
 import { AuthRequest } from "../middlewares/auth.middleware"
-import { Role } from "../constants/RoleHierarchy"
 import asyncHandler from "../utils/async-handler"
 import bcrypt from 'bcrypt'
-import { Action } from "../generated/prisma/enums"
+import { Action, OrgRoles } from "../generated/prisma/enums"
+import { createActivity } from "../utils/createActivity"
 
 
 export const createOrganization = async (req: AuthRequest, res: Response) => {
@@ -92,9 +92,11 @@ export const getOrganizationMembers = async (req: AuthRequest, res: Response) =>
     try {
         const userId = req.user?.userId
         const { organizationId } = req.params
+
         if (!userId) {
             return res.status(401).json({ message: "Unauthorised" })
         }
+
         const members = await prisma.organizationMembers.findMany({
             where: {
                 organizationId: Number(organizationId)
@@ -102,11 +104,17 @@ export const getOrganizationMembers = async (req: AuthRequest, res: Response) =>
             include: { user: true, addedBy: true }
         })
 
-        res.status(201).json({
+        const sortedMembers = members.sort((a, b) => {
+            if (a.userId === userId) return -1
+            if (b.userId === userId) return 1
+            return 0
+        })
+
+        res.status(200).json({
             access: true,
             message: "Organizations members fetched successfully",
             data: {
-                members
+                members: sortedMembers
             }
         })
 
@@ -172,6 +180,37 @@ export const createUserFromOrg = asyncHandler(
                 permissions: ['TEAM_MEMBER_ACTIONS']
             }
         })
+
+        const orgAdmins = await prisma.organizationMembers.findMany({
+            where: {
+                organizationId,
+                role: {
+                    in: ["ORG_ADMIN", "ORG_OWNER"]
+                }
+            },
+            select: {
+                userId: true,
+                organization: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
+        })
+        const adminIds = orgAdmins.map((a) => a.userId);
+        await createActivity({
+            actorId: Number(userId),
+            action: "CREATE_USER",
+            module: "user",
+            entityId: newUser.id,
+            entityType: "USER",
+            isAdmin: true,
+            visibilityUserIds: adminIds, // 👈 only project admins
+            metadata: {
+                title: newUser.name,
+                subTitle: orgAdmins[0].organization.name
+            }
+        });
 
         return res.status(201).json(newUser)
     }
@@ -254,7 +293,7 @@ export const updateOrganizationMemberRole = asyncHandler(
                 }
             },
             data: {
-                role: role as Role
+                role: role as OrgRoles
             }
         })
         let newPermissions: Action[] = [];

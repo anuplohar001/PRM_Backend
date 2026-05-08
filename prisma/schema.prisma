@@ -32,6 +32,12 @@ enum Action {
   TEAM_MEMBER_ACTIONS
 }
 
+enum OrgRoles {
+  ORG_ADMIN
+  ORG_OWNER
+  ORG_MEMBER
+}
+
 enum ProjectRoles {
   PROJECT_ADMIN
   PROJECT_MEMBER
@@ -65,6 +71,35 @@ enum TaskType {
   STORY
   SUBTASK
   EPIC
+}
+
+enum ActionType {
+  CREATE_USER
+  DELETE_USER
+
+  CREATE_TEAM
+  DELETE_TEAM
+
+  CREATE_TASK
+  ASSIGN_TASK
+  UPDATE_TASK
+  DELETE_TASK
+
+  CREATE_WORKFLOW
+}
+enum EntityType {
+  USER
+  TASK
+  PROJECT
+  TEAM
+  WORKFLOW
+  COMMENT
+}
+
+enum VisibilityType {
+  PRIVATE
+  PROJECT
+  CUSTOM
 }
 
 model Log {
@@ -111,6 +146,9 @@ model Users {
 
   assignedTasks     Task[] @relation("AssignedTo")
   tasksAssignedByMe Task[] @relation("AssignedBy")
+
+  activities           Activity[]
+  activityVisibilities ActivityVisibility[]
 }
 
 model Policy {
@@ -152,7 +190,7 @@ model OrganizationMembers {
   id             Int      @id @default(autoincrement())
   organizationId Int
   userId         Int
-  role           String
+  role           OrgRoles?
   joinedAt       DateTime @default(now())
   addedById      Int?
 
@@ -183,7 +221,8 @@ model Projects {
   updatedBy      Users?           @relation("UserUpdatedBy", fields: [updatedById], references: [id])
   teams          Team[]
 
-  tasks Task[]
+  tasks      Task[]
+  activities Activity[]
 
   @@map("projects")
 }
@@ -254,7 +293,7 @@ model WorkFlow {
   projectId   Int
   name        String
   description String
-  position    Int 
+  position    Int
   createdAt   DateTime @default(now())
   project     Projects @relation(fields: [projectId], references: [id])
 
@@ -289,4 +328,44 @@ model Task {
 
   @@index([projectId])
   @@index([statusId])
+}
+
+model Activity {
+  id Int @id @default(autoincrement())
+
+  actorId Int
+  actor   Users @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  action ActionType
+  module String
+
+  entityId   Int?
+  entityType  EntityType?
+
+  projectId Int?
+  project   Projects? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Visibility
+  visibilityType  VisibilityType
+  visibilityUsers ActivityVisibility[]
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([projectId, createdAt])
+}
+
+model ActivityVisibility {
+  id Int @id @default(autoincrement())
+
+  activityId Int
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  userId Int
+  user   Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, userId])
+  @@index([userId])
 }

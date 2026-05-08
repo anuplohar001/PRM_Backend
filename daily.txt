@@ -6,23 +6,38 @@ git add .
 git commit -m "message"
 git push origin branchName
 
-
+prisma commands
+npx prisma migrate dev --name add-org-roles-enum  (sync with database)
+npx prisma migrate dev --create-type   (work in prisma only without syncing)
+npx prisma generate  
 
 
 when PROJECT_ADMIN role is assigned to anyone then set TEAM_ADMIN_ACTIONS to all teams under that project (currently approach is changed)✅
 
 recent activities page ❌
-
+set permissions while changing role of user of any resource ❌
 create connection between teams, workflows and task ❌
 
-workflow create and display page only for PROJECT_ADMIN ✅
-add position column in workflow table and sort according to position before returning ❌
+workflow drag and drop feature ❌
+manage workflow need to reload page ❌
+comments on tasks ❌
+create team button on UI (condition wise) ❌
+remove team member controller ❌
 
 task and task fields table❌
-task assign members ❌
-
-
+show task in workflow if assign to member is different❌
 save user action of work space dashboard (create new table for that)❌
-
-
 check membership of user before adding into project member list ❌
+
+
+
+recent activity     create, remove
+
+show to org owner, and to other admins
+    add org member, remove org member
+    create project
+show to project admins
+    create team
+    create task (show to task assigne only if task creator and assigne are different)
+show to team admins
+    add team member (show to team member and admin)
