@@ -5,3 +5,9 @@ node_modules
 /generated/prisma
 
 /src/generated/prisma
+
+CLAUDE.md
+daily.txt
+rough.json
+image.png
+prm_database_schema.pdf

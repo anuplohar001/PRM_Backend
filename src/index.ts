@@ -12,6 +12,8 @@ import { requestLogger } from './middlewares/logger.middleware'
 import { getSystemOverview } from './controllers/getRecords.controllers'
 import taskRoutes from './routes/tasks.routes'
 import activityRoutes from './routes/activities.routes'
+import { redisPublisher } from './lib/redis'
+import { startInventorySubscriber } from './lib/subscriber'
 
 
 const serverPort = process.env.SERVER_PORT
@@ -25,13 +27,14 @@ app.use('/api/users', userRoutes)
 app.use("/api/organizations", organizationRoutes)
 app.use("/api/projects", projectRoutes)
 app.use("/api/teams", teamRoutes)
-app.use("/api/workflow", workFlowRoutes)
+// app.use("/api/workflow", workFlowRoutes)
 app.use("/api/tasks", taskRoutes)
 app.use("/api/activities", activityRoutes)
 
 
 app.use("/api", getRecordsRoutes)
 app.use("/api/super-admin", getSystemOverview)
+
 
 
 app.use((req, res) => {
@@ -51,6 +54,18 @@ app.use((err: any, req: any, res: any, next: any) => {
 app.get('/', (req: Request, res: Response) => {
     res.send('PRM API is running...')
 })
-app.listen(serverPort, () => {
-    console.log('Server is running on port: ', serverPort)
-})
+
+
+const startServer = async () => {
+    // await connectRedis()
+    // redisPublisher.on("connect", () => {
+    //     console.log("Publisher Redis Connected")
+    // })
+    // await startInventorySubscriber()
+
+    app.listen(serverPort, () => {
+        console.log("Server running on port ", serverPort)
+    })
+}
+
+startServer()

@@ -6,18 +6,16 @@ import {
     checkProjectPermissions,
 } from '../middlewares/permission.middleware'
 import {
-    addProjectMember,
     createProject,
     deleteProject,
-    getAddProjectMemberList,
-    getMembers,
     getOrganizationProjects,
     viewProject,
-    getUserProjects,
-    removeProjectMember,
     updateProject,
     updateProjectMemberRole,
-    getAdminProjects
+    getAvailableTeams,
+    getProjectMembers,
+    manageProjectMember,
+    manageProjectTeam
 } from '../controllers/project.controllers'
 
 import { Action } from '../constants/Permissions'
@@ -34,27 +32,10 @@ router.get(
 router.get(
     "/:organizationId",
     authenticateUser,
-    checkOrgPermissions(Action.GET_PROJECTS),
+    // checkOrgPermissions(Action.GET_PROJECTS),
     getOrganizationProjects
 )
 
-router.get(
-    "/admin/projects",
-    authenticateUser,
-    getAdminProjects
-)
-
-router.get(
-    "/get-my-projects/:organizationId",
-    authenticateUser,
-    getUserProjects
-)
-router.get(
-    "/get-add-project-member-list/:organizationId/:projectId",
-    authenticateUser,
-    checkProjectPermissions(Action.ADD_PROJECT_MEMBER),
-    getAddProjectMemberList
-)
 
 router.get(
     "/view-project/:projectId",
@@ -75,7 +56,7 @@ router.post(
 router.put(
     "/:projectId",
     authenticateUser,
-    checkProjectPermissions(Action.UPDATE_PROJECT),
+    // checkProjectPermissions(Action.UPDATE_PROJECT),
     updateProject
 )
 
@@ -87,21 +68,7 @@ router.delete(
 )
 
 
-//Project Member Routes
 
-router.get(
-    "/get-members/:projectId",
-    authenticateUser,
-    checkProjectPermissions(Action.PROJECT_MEMBERS_LIST),
-    getMembers
-)
-
-router.post(
-    "/add-member",
-    authenticateUser,
-    checkProjectPermissions(Action.ADD_PROJECT_MEMBER),
-    addProjectMember
-)
 
 router.patch(
     "/update-member-role",
@@ -110,11 +77,35 @@ router.patch(
     updateProjectMemberRole
 )
 
-router.delete(
-    "/remove-member/:projectId/:memberId",
-    authenticateUser,
-    checkProjectPermissions(Action.REMOVE_PROJECT_MEMBER),
-    removeProjectMember
-)
 
+router.post(
+    "/manage-member",
+    authenticateUser,
+    manageProjectMember
+);
+
+
+router.get(
+    "/available-teams/:projectId",
+    authenticateUser,
+    getAvailableTeams
+);
+
+
+router.get(
+    "/available-members/:projectId",
+    authenticateUser,
+    getProjectMembers
+);
+
+
+
+
+
+
+router.post(
+    "/manage-team",
+    authenticateUser,
+    manageProjectTeam
+);
 export default router

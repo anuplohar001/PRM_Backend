@@ -38,6 +38,7 @@ export const getOrgPermissions = (resource: Resources) => {
                 );
             }
             return res.status(201).json({
+                success: true,
                 message: "Permissions fetched successfully",
                 data: {
                     permissions,
@@ -74,6 +75,7 @@ export const getProjectPermissions = (resource: Resources) => {
                 );
             }
             return res.status(201).json({
+                success: true,
                 message: "Permissions fetched successfully",
                 data: {
                     permissions,
@@ -104,12 +106,13 @@ export const getTeamPermissions = (resource: Resources) => {
             })
             let actions = null
             if (permissions) {
-                
+
                 actions = getActionsFromGroups(
                     permissions?.permissions
                 );
             }
             return res.status(201).json({
+                success: true,
                 message: "Permissions fetched successfully",
                 data: {
                     permissions,
