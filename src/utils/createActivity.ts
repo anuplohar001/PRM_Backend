@@ -1,4 +1,5 @@
 import { ActionType, EntityType } from "../generated/prisma/enums";
+import { redisPublisher } from "../lib/redis";
 import { prisma } from "./prisma";
 
 
@@ -32,7 +33,7 @@ export const createActivity = async ({
     metadata = {},
 }: CreateActivityParams): Promise<void> => {
     let visibleUserIds: number[] = [];
-
+    const visibilityType = isAdmin ? 'ADMIN_ONLY' : 'PUBLIC';
     if (visibilityUserIds) {
         visibleUserIds = visibilityUserIds;
     } else {
@@ -51,7 +52,7 @@ export const createActivity = async ({
 
     visibleUserIds = Array.from(new Set(visibleUserIds));
 
-    await prisma.activity.create({
+    const activity = await prisma.activity.create({
         data: {
             actorId,
             action,
@@ -72,4 +73,20 @@ export const createActivity = async ({
             },
         },
     });
+
+    // try {
+    //     const subscribers = await redisPublisher.publish(
+    //         'activity:created',
+    //         JSON.stringify({
+    //             ...activity,
+    //             visibilityUserIds: visibilityUserIds || [],
+    //             visibilityType,
+    //         })
+    //     );
+    //     console.log("Activity published ", subscribers)
+    // } catch (error) {
+    //     console.error('Failed to publish activity to Redis:', error);
+    //     // Don't throw - activity is already saved, just log the error
+    // }
+
 };

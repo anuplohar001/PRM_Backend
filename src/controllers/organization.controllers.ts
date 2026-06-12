@@ -53,6 +53,7 @@ export const createOrganization = async (req: AuthRequest, res: Response) => {
         })
 
         res.status(201).json({
+            success: true,
             message: "Organization created successfully",
             data: organization
         })
@@ -79,6 +80,7 @@ export const getOrganizationsOfUser = async (req: AuthRequest, res: Response) =>
         })
 
         res.status(201).json({
+            success: true,
             message: "Organizations fetched successfully",
             data: existingOrgs
         })
@@ -244,11 +246,13 @@ export const addOrganizationMember = async (req: AuthRequest, res: Response) => 
             data: {
                 organizationId,
                 userId: memberId,
-                role: "ORG_MEMBER"
+                role: "ORG_MEMBER",
+                addedById:Number(userId)
             }
         })
 
         res.status(201).json({
+            success: true,
             message: "Organization member added successfully",
             organization
         })

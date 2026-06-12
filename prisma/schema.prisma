@@ -7,6 +7,251 @@ datasource db {
   provider = "postgresql"
 }
 
+model Log {
+  endpoint  String?
+  method    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  userId    Int?
+  id        Int      @id @default(autoincrement())
+}
+
+model Users {
+  id                      Int                   @id @default(autoincrement())
+  name                    String
+  email                   String                @unique
+  description             String?
+  password                String
+  role                    String
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  createdById             Int?
+  updatedById             Int?
+  lastOrganizationId      Int?
+  activities              Activity[]
+  activityVisibilities    ActivityVisibility[]
+  tasksAssignedByMe       Task[]                @relation("AssignedBy")
+  assignedTasks           Task[]                @relation("AssignedTo")
+  createdTeams            Team[]                @relation("TeamCreatedBy")
+  updatedTeams            Team[]                @relation("TeamUpdatedBy")
+  addedTeamMembers        TeamMember[]          @relation("TeamMemberAddedBy")
+  teamMemberships         TeamMember[]
+  createdBy               Users?                @relation("UserCreatedBy", fields: [createdById], references: [id])
+  createdUsers            Users[]               @relation("UserCreatedBy")
+  lastOrganization        Organizations?        @relation("LastOrganization", fields: [lastOrganizationId], references: [id])
+  updatedBy               Users?                @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+  updatedUsers            Users[]               @relation("UserUpdatedBy")
+  orgMemberAddedBy        OrganizationMembers[] @relation("OrgMemberAddedBy")
+  organizationMemberships OrganizationMembers[]
+  createdOrganizations    Organizations[]       @relation("UserCreatedBy")
+  updatedOrganizations    Organizations[]       @relation("UserUpdatedBy")
+  policies                Policy[]              @relation("ResourcePolicies")
+  projMemberAddedBy       ProjectMembers[]      @relation("ProjectMemberAddedBy")
+  projectMemberships      ProjectMembers[]
+  assignedProjectTeams    ProjectTeam[]         @relation("ProjectTeamAssignedBy")
+  createdProjects         Projects[]            @relation("UserCreatedBy")
+  updatedProjects         Projects[]            @relation("UserUpdatedBy")
+}
+
+model Policy {
+  id          Int          @id @default(autoincrement())
+  resourceId  Int
+  resource    ResourceType
+  target      TargetType
+  targetId    Int
+  effect      EffectType
+  permissions Action[]
+  user        Users        @relation("ResourcePolicies", fields: [targetId], references: [id])
+
+  @@unique([resourceId, targetId, resource])
+  @@map("policies")
+}
+
+model Organizations {
+  id             Int                   @id @default(autoincrement())
+  name           String
+  description    String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  createdById    Int?
+  updatedById    Int?
+  teams          Team[]
+  lastUsedUsers  Users[]               @relation("LastOrganization")
+  members        OrganizationMembers[]
+  createdBy      Users?                @relation("UserCreatedBy", fields: [createdById], references: [id])
+  updatedBy      Users?                @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+  projectMembers ProjectMembers[]
+  projects       Projects[]
+
+  @@map("organizations")
+}
+
+model OrganizationMembers {
+  id             Int           @id @default(autoincrement())
+  organizationId Int
+  userId         Int
+  joinedAt       DateTime      @default(now())
+  addedById      Int?
+  role           OrgRoles?
+  addedBy        Users?        @relation("OrgMemberAddedBy", fields: [addedById], references: [id])
+  organization   Organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           Users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@map("organization_members")
+}
+
+model Projects {
+  id             Int              @id @default(autoincrement())
+  organizationId Int
+  name           String
+  description    String?
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  createdById    Int?
+  updatedById    Int?
+  status         ProjectStatus    @default(PLANNING)
+  activities     Activity[]
+  tasks          Task[]
+  members        ProjectMembers[]
+  teams          ProjectTeam[]
+  createdBy      Users?           @relation("UserCreatedBy", fields: [createdById], references: [id])
+  organization   Organizations    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  updatedBy      Users?           @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+
+  @@map("projects")
+}
+
+model ProjectMembers {
+  id             Int            @id @default(autoincrement())
+  projectId      Int
+  userId         Int
+  joinedAt       DateTime       @default(now())
+  addedById      Int?
+  role           ProjectRoles   @default(PROJECT_MEMBER)
+  organizationId Int?
+  addedBy        Users?         @relation("ProjectMemberAddedBy", fields: [addedById], references: [id])
+  organization   Organizations? @relation(fields: [organizationId], references: [id])
+  project        Projects       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user           Users          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+model Team {
+  id             Int           @id @default(autoincrement())
+  name           String
+  organizationId Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  createdById    Int
+  updatedById    Int
+  createdBy      Users         @relation("TeamCreatedBy", fields: [createdById], references: [id])
+  organization   Organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  updatedBy      Users         @relation("TeamUpdatedBy", fields: [updatedById], references: [id])
+  members        TeamMember[]
+  workflow       WorkFlow[]
+  projects       ProjectTeam[]
+
+  @@index([organizationId])
+}
+
+model TeamMember {
+  id        Int       @id @default(autoincrement())
+  teamId    Int
+  userId    Int
+  role      TeamRoles @default(TEAM_MEMBER)
+  addedById Int?
+  addedBy   Users?    @relation("TeamMemberAddedBy", fields: [addedById], references: [id])
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  member    Users     @relation(fields: [userId], references: [id])
+
+  @@unique([teamId, userId])
+}
+
+model ProjectTeam {
+  id           Int      @id @default(autoincrement())
+  projectId    Int
+  teamId       Int
+  assignedById Int?
+  assignedAt   DateTime @default(now())
+  assignedBy   Users?   @relation("ProjectTeamAssignedBy", fields: [assignedById], references: [id])
+  project      Projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, teamId])
+  @@index([projectId])
+  @@index([teamId])
+  @@map("project_teams")
+}
+
+model WorkFlow {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  createdAt   DateTime @default(now())
+  position    Int
+  teamId      Int?     @default(autoincrement())
+  task        Task[]
+  team        Team?    @relation(fields: [teamId], references: [id])
+
+  @@unique([teamId, name])
+  @@unique([teamId, position])
+}
+
+model Task {
+  id             Int       @id @default(autoincrement())
+  title          String
+  description    String?
+  priority       Priority?
+  projectId      Int
+  statusId       Int?
+  assignedBy     Int?
+  assignedTo     Int?
+  createdAt      DateTime  @default(now())
+  type           TaskType?
+  assignedByUser Users?    @relation("AssignedBy", fields: [assignedBy], references: [id])
+  assignedToUser Users?    @relation("AssignedTo", fields: [assignedTo], references: [id])
+  project        Projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status         WorkFlow? @relation(fields: [statusId], references: [id])
+
+  @@index([projectId])
+  @@index([statusId])
+}
+
+model Activity {
+  id              Int                  @id @default(autoincrement())
+  actorId         Int
+  action          ActionType
+  module          String
+  entityId        Int?
+  projectId       Int?
+  visibilityType  VisibilityType
+  metadata        Json?
+  createdAt       DateTime             @default(now())
+  entityType      EntityType?
+  actor           Users                @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  project         Projects?            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  visibilityUsers ActivityVisibility[]
+
+  @@index([actorId, createdAt])
+  @@index([projectId, createdAt])
+}
+
+model ActivityVisibility {
+  id         Int      @id @default(autoincrement())
+  activityId Int
+  userId     Int
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user       Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, userId])
+  @@index([userId])
+}
+
 enum ResourceType {
   ORGANIZATION
   PROJECT
@@ -23,13 +268,12 @@ enum EffectType {
 }
 
 enum Action {
-  // Define your actions here, for example:
   ORG_OWNER_ACTIONS
   ORG_ADMIN_ACTIONS
   PROJECT_ADMIN_ACTIONS
-  PROJECT_MEMBER_ACTIONS
   TEAM_ADMIN_ACTIONS
   TEAM_MEMBER_ACTIONS
+  PROJECT_MEMBER_ACTIONS
 }
 
 enum OrgRoles {
@@ -74,298 +318,28 @@ enum TaskType {
 }
 
 enum ActionType {
-  CREATE_USER
-  DELETE_USER
-
-  CREATE_TEAM
-  DELETE_TEAM
-
   CREATE_TASK
   ASSIGN_TASK
   UPDATE_TASK
   DELETE_TASK
-
+  CREATE_TEAM
+  CREATE_USER
+  DELETE_USER
+  DELETE_TEAM
   CREATE_WORKFLOW
 }
+
 enum EntityType {
-  USER
   TASK
   PROJECT
   TEAM
   WORKFLOW
   COMMENT
+  USER
 }
 
 enum VisibilityType {
   PRIVATE
   PROJECT
   CUSTOM
-}
-
-model Log {
-  endpoint  String?
-  method    String?
-  metadata  Json?
-  createdAt DateTime @default(now())
-  userId    Int?
-  id        Int      @id @default(autoincrement())
-}
-
-model Users {
-  id                      Int                   @id @default(autoincrement())
-  name                    String
-  email                   String                @unique
-  description             String?
-  password                String
-  role                    String
-  createdAt               DateTime              @default(now())
-  updatedAt               DateTime              @updatedAt
-  createdById             Int?
-  updatedById             Int?
-  createdBy               Users?                @relation("UserCreatedBy", fields: [createdById], references: [id])
-  createdUsers            Users[]               @relation("UserCreatedBy")
-  updatedBy               Users?                @relation("UserUpdatedBy", fields: [updatedById], references: [id])
-  updatedUsers            Users[]               @relation("UserUpdatedBy")
-  organizationMemberships OrganizationMembers[]
-  createdOrganizations    Organizations[]       @relation("UserCreatedBy")
-  updatedOrganizations    Organizations[]       @relation("UserUpdatedBy")
-  projectMemberships      ProjectMembers[]
-  createdProjects         Projects[]            @relation("UserCreatedBy")
-  updatedProjects         Projects[]            @relation("UserUpdatedBy")
-
-  orgMemberAddedBy  OrganizationMembers[] @relation("OrgMemberAddedBy")
-  projMemberAddedBy ProjectMembers[]      @relation("ProjectMemberAddedBy")
-
-  policies Policy[] @relation("ResourcePolicies")
-
-  createdTeams Team[] @relation("TeamCreatedBy")
-  updatedTeams Team[] @relation("TeamUpdatedBy")
-
-  addedTeamMembers TeamMember[] @relation("TeamMemberAddedBy") //users added by TEAM_ADMIN
-  teamMemberships  TeamMember[] //all teams where this user is member of that teams
-
-  assignedTasks     Task[] @relation("AssignedTo")
-  tasksAssignedByMe Task[] @relation("AssignedBy")
-
-  activities           Activity[]
-  activityVisibilities ActivityVisibility[]
-}
-
-model Policy {
-  id         Int          @id @default(autoincrement())
-  resourceId Int
-  resource   ResourceType
-
-  target   TargetType
-  targetId Int
-
-  effect      EffectType
-  permissions Action[]
-
-  user Users @relation("ResourcePolicies", fields: [targetId], references: [id])
-
-  @@unique([resourceId, targetId, resource])
-  @@map("policies")
-}
-
-model Organizations {
-  id             Int                   @id @default(autoincrement())
-  name           String
-  description    String?
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
-  createdById    Int?
-  updatedById    Int?
-  members        OrganizationMembers[]
-  createdBy      Users?                @relation("UserCreatedBy", fields: [createdById], references: [id])
-  updatedBy      Users?                @relation("UserUpdatedBy", fields: [updatedById], references: [id])
-  projects       Projects[]
-  projectMembers ProjectMembers[]
-  teams          Team[]
-
-  @@map("organizations")
-}
-
-model OrganizationMembers {
-  id             Int      @id @default(autoincrement())
-  organizationId Int
-  userId         Int
-  role           OrgRoles?
-  joinedAt       DateTime @default(now())
-  addedById      Int?
-
-  addedBy      Users?        @relation("OrgMemberAddedBy", fields: [addedById], references: [id])
-  organization Organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user         Users         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, userId])
-  @@map("organization_members")
-}
-
-model Projects {
-  id             Int              @id @default(autoincrement())
-  organizationId Int
-  name           String
-  description    String?
-  startDate      DateTime?
-  endDate        DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  createdById    Int?
-  updatedById    Int?
-  status         ProjectStatus    @default(PLANNING)
-  workflow       WorkFlow[]
-  members        ProjectMembers[]
-  createdBy      Users?           @relation("UserCreatedBy", fields: [createdById], references: [id])
-  organization   Organizations    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  updatedBy      Users?           @relation("UserUpdatedBy", fields: [updatedById], references: [id])
-  teams          Team[]
-
-  tasks      Task[]
-  activities Activity[]
-
-  @@map("projects")
-}
-
-model ProjectMembers {
-  id             Int      @id @default(autoincrement())
-  projectId      Int
-  organizationId Int?
-  userId         Int
-  joinedAt       DateTime @default(now())
-  addedById      Int?
-
-  addedBy      Users?         @relation("ProjectMemberAddedBy", fields: [addedById], references: [id])
-  role         ProjectRoles   @default(PROJECT_MEMBER)
-  project      Projects       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  organization Organizations? @relation(fields: [organizationId], references: [id])
-  user         Users          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([projectId, userId])
-  @@map("project_members")
-}
-
-model Team {
-  id   Int    @id @default(autoincrement())
-  name String
-
-  // Foreign Keys
-  organizationId Int
-  projectId      Int?
-
-  // Relations
-  organization Organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  project      Projects?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
-
-  // Optional: team members
-  members TeamMember[]
-
-  createdById Int
-  updatedById Int
-
-  createdBy Users @relation("TeamCreatedBy", fields: [createdById], references: [id])
-  updatedBy Users @relation("TeamUpdatedBy", fields: [updatedById], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([organizationId])
-  @@index([projectId])
-}
-
-model TeamMember {
-  id Int @id @default(autoincrement())
-
-  teamId    Int
-  userId    Int
-  role      TeamRoles @default(TEAM_MEMBER)
-  addedById Int?
-
-  addedBy Users? @relation("TeamMemberAddedBy", fields: [addedById], references: [id])
-  member  Users  @relation(fields: [userId], references: [id])
-  team    Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
-
-  @@unique([teamId, userId])
-}
-
-model WorkFlow {
-  id          Int      @id @default(autoincrement())
-  projectId   Int
-  name        String
-  description String
-  position    Int
-  createdAt   DateTime @default(now())
-  project     Projects @relation(fields: [projectId], references: [id])
-
-  task Task[]
-
-  @@unique([projectId, name])
-  @@unique([projectId, position])
-}
-
-model Task {
-  id Int @id @default(autoincrement())
-
-  title       String
-  description String?
-
-  priority Priority?
-  type     TaskType?
-
-  projectId Int
-  project   Projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  statusId Int?
-  status   WorkFlow? @relation(fields: [statusId], references: [id], onDelete: SetNull)
-
-  assignedBy     Int?
-  assignedByUser Users? @relation("AssignedBy", fields: [assignedBy], references: [id], onDelete: SetNull)
-
-  assignedTo     Int?
-  assignedToUser Users? @relation("AssignedTo", fields: [assignedTo], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-
-  @@index([projectId])
-  @@index([statusId])
-}
-
-model Activity {
-  id Int @id @default(autoincrement())
-
-  actorId Int
-  actor   Users @relation(fields: [actorId], references: [id], onDelete: Cascade)
-
-  action ActionType
-  module String
-
-  entityId   Int?
-  entityType  EntityType?
-
-  projectId Int?
-  project   Projects? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  // Visibility
-  visibilityType  VisibilityType
-  visibilityUsers ActivityVisibility[]
-
-  metadata Json?
-
-  createdAt DateTime @default(now())
-
-  @@index([actorId, createdAt])
-  @@index([projectId, createdAt])
-}
-
-model ActivityVisibility {
-  id Int @id @default(autoincrement())
-
-  activityId Int
-  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-
-  userId Int
-  user   Users @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([activityId, userId])
-  @@index([userId])
 }

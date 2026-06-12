@@ -41,12 +41,17 @@ router.post(
     checkOrgPermissions(Action.CREATE_USER),
     createUserFromOrg
 )
+
+
+
 router.post(
     "/add-member",
     authenticateUser,
-    checkOrgPermissions(Action.ADD_MEMBER),
+    // checkOrgPermissions(Action.ADD_MEMBER),
     addOrganizationMember
 )
+
+
 
 router.patch(
     "/update-member-role",

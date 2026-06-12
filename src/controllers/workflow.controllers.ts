@@ -14,18 +14,33 @@ export const getProjectWorkflow = asyncHandler(
         const userId = req.user?.userId
 
         if (!userId) {
-            return res.status(401).json({ message: "Unauthorised" })
+            return res.status(401).json({ message: "Unauthorise" })
         }
-        const workflow = await prisma.workFlow.findMany({
+        // Get team IDs that are in the project
+        const projectTeams = await prisma.projectTeam.findMany({
             where: {
                 projectId: Number(projectId)
+            },
+            select: {
+                teamId: true
+            }
+        });
+        const teamIds = projectTeams.map(pt => pt.teamId);
+
+        // Get workflows for those teams
+        const workflow = await prisma.workFlow.findMany({
+            where: {
+                teamId: {
+                    in: teamIds
+                }
             },
             orderBy: {
                 position: 'asc'
             }
         })
 
-        res.status(201).json({
+        res.status(200).json({
+            success: true,
             message: "Project workflow fetched successfully",
             data: {
                 workflows: workflow
@@ -53,6 +68,7 @@ export const getWorkflow = asyncHandler(
         })
 
         res.status(201).json({
+            success: true,
             message: "Workflow fetched successfully",
             data: {
                 workflow
@@ -69,32 +85,48 @@ export const getWorkflow = asyncHandler(
 export const createWorkflow = asyncHandler(
     async (req: AuthRequest, res: Response) => {
 
-        const { name, description, projectId, position } = req.body
+        const { name, description, projectId, teamId, position } = req.body
         const userId = req.user?.userId
 
         if (!userId) {
-            return res.status(401).json({ message: "Unauthorised" })
+            return res.status(401).json({ message: "Unauthorise" })
         }
+
+        // Validate that the teamId belongs to the project
+        const projectTeam = await prisma.projectTeam.findFirst({
+            where: {
+                projectId: Number(projectId),
+                teamId: Number(teamId)
+            },
+            include: {
+                project: true
+            }
+        });
+
+        if (!projectTeam) {
+            return res.status(400).json({
+                success: false,
+                message: "Team does not belong to the project"
+            });
+        }
+
         const workflow = await prisma.workFlow.create({
             data: {
                 name,
                 description,
                 position: Number(position),
-                projectId: Number(projectId)
-            },
-            include: {
-                project: true
+                teamId: Number(teamId)
             }
-        })
+        });
         const projectMembers = await prisma.projectMembers.findMany({
-            where:{
-                projectId
+            where: {
+                projectId: Number(projectId)
             }
         })
         const memberIds = projectMembers.map((p) => p.id)
         await createActivity({
             actorId: Number(userId),
-            action: "CREATE_WORKFLOW", 
+            action: "CREATE_WORKFLOW",
             module: "user",
             entityId: workflow.id,
             entityType: "WORKFLOW",
@@ -102,11 +134,12 @@ export const createWorkflow = asyncHandler(
             visibilityUserIds: memberIds, // 👈 only project admins
             metadata: {
                 title: workflow.name,
-                subTitle: workflow.project.name
+                subTitle: projectTeam.project.name
             }
         });
 
-        res.status(201).json({
+        res.status(200).json({
+            success: true,
             message: "Workflow created successfully",
             workflow
         })

@@ -74,6 +74,7 @@ export const getActivities = asyncHandler(
 
         res.status(200).json({
             message: "Activities fetched successfully",
+            success:true,
             data: {
                 activities,
                 pagination: {

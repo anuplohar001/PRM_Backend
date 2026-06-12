@@ -30,7 +30,7 @@ export const authenticateUser = (
             email: string
             role: Role
         }
-
+        
         req.user = decoded
 
         next()

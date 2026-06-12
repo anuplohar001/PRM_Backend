@@ -117,24 +117,6 @@ export const checkTeamPermissions = (requiredAction: string) => {
                         id: Number(teamId)
                     }
                 })
-                if (teamDetails) {
-                    const projectPolicy = await prisma.policy.findFirst({
-                        where: {
-                            targetId: userId,
-                            resourceId: Number(teamDetails.projectId),
-                            resource: "PROJECT"
-                        }
-                    })
-                    const hasFullTeamAccess = projectPolicy?.permissions.includes("PROJECT_ADMIN_ACTIONS")
-
-                    if (!hasFullTeamAccess) {
-                        return res.status(403).json({ message: "You have no access to view this page !", hasAccess: false });
-                    }
-
-                    req.permissions = projectPolicy?.permissions
-                    next()
-                } else
-                    return res.status(403).json({ message: "No permissions found", hasAccess: false });
             } else {
                 const userRoles: string[] = policy.permissions;
 
